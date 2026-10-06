@@ -1,0 +1,53 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transaction';
+
+package pb.transaction;
+
+import "common/api.proto";
+import "transaction/transaction.proto";
+
+message FindTransactionByMerchantIdRequest { int32 merchant_id = 1; }
+
+message FindAllTransactionRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+
+message FindAllTransactionCardNumberRequest {
+  string card_number = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  string search = 4;
+}
+
+message ApiResponsePaginationTransaction {
+  string status = 1;
+  string message = 2;
+  repeated TransactionResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationTransactionDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated TransactionResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+service TransactionQueryService {
+  rpc FindAllTransaction(FindAllTransactionRequest)
+      returns (ApiResponsePaginationTransaction);
+  rpc FindAllTransactionByCardNumber(FindAllTransactionCardNumberRequest)
+      returns (ApiResponsePaginationTransaction);
+
+  rpc FindByIdTransaction(FindByIdTransactionRequest)
+      returns (ApiResponseTransaction);
+  rpc FindTransactionByMerchantId(FindTransactionByMerchantIdRequest)
+      returns (ApiResponseTransactions);
+  rpc FindByActiveTransaction(FindAllTransactionRequest)
+      returns (ApiResponsePaginationTransactionDeleteAt);
+  rpc FindByTrashedTransaction(FindAllTransactionRequest)
+      returns (ApiResponsePaginationTransactionDeleteAt);
+}

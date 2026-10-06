@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transaction';
+
+package pb.transaction;
+
+import "google/protobuf/wrappers.proto";
+
+message FindByIdTransactionRequest { int32 transaction_id = 1; }
+
+message FindByCardNumberTransactionRequest { string card_number = 1; }
+
+message FindByYearCardNumberTransactionRequest {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindYearTransactionStatus { int32 year = 1; }
+
+message FindMonthlyTransactionStatus {
+  int32 year = 1;
+  int32 month = 2;
+}
+
+message FindYearTransactionStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindMonthlyTransactionStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+  int32 month = 3;
+}
+
+message TransactionResponse {
+  int32 id = 1;
+  string card_number = 2;
+  string transaction_no = 3;
+  int32 amount = 4;
+  string payment_method = 5;
+  int32 merchant_id = 6;
+  string transaction_time = 7;
+  string created_at = 8;
+  string updated_at = 9;
+}
+
+message TransactionResponseDeleteAt {
+  int32 id = 1;
+  string card_number = 2;
+  string transaction_no = 3;
+  int32 amount = 4;
+  string payment_method = 5;
+  int32 merchant_id = 6;
+  string transaction_time = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  google.protobuf.StringValue deleted_at = 10;
+}
+
+message ApiResponseTransaction {
+  string status = 1;
+  string message = 2;
+  TransactionResponse data = 3;
+}
+
+message ApiResponseTransactions {
+  string status = 1;
+  string message = 2;
+  repeated TransactionResponse data = 3;
+}
+
+message ApiResponseTransactionDeleteAt {
+  string status = 1;
+  string message = 2;
+  TransactionResponseDeleteAt data = 3;
+}

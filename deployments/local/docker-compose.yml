@@ -1,0 +1,965 @@
+services:
+  postgres:
+    image: postgres:17-alpine
+    container_name: postgres
+    environment:
+      POSTGRES_USER: DRAGON
+      POSTGRES_PASSWORD: DRAGON
+      POSTGRES_DB: PAYMENT_GATEWAY
+      POSTGRES_INITDB_ARGS: "-E UTF8 --locale=C"
+      PGDATA: /var/lib/postgresql/data/pgdata
+    command:
+      - "postgres"
+      - "-c"
+      - "max_connections=100"
+      - "-c"
+      - "shared_buffers=512MB"
+      - "-c"
+      - "effective_cache_size=2GB"
+      - "-c"
+      - "maintenance_work_mem=128MB"
+      - "-c"
+      - "checkpoint_completion_target=0.9"
+      - "-c"
+      - "wal_buffers=16MB"
+      - "-c"
+      - "default_statistics_target=100"
+      - "-c"
+      - "random_page_cost=1.1"
+      - "-c"
+      - "effective_io_concurrency=200"
+      - "-c"
+      - "work_mem=4MB"
+      - "-c"
+      - "min_wal_size=1GB"
+      - "-c"
+      - "max_wal_size=4GB"
+      - "-c"
+      - "max_worker_processes=4"
+      - "-c"
+      - "max_parallel_workers_per_gather=2"
+      - "-c"
+      - "max_parallel_workers=2"
+      - "-c"
+      - "max_parallel_maintenance_workers=2"
+      - "-c"
+      - "log_min_duration_statement=1000"
+      - "-c"
+      - "log_line_prefix=%t [%p]: [%l-1] user=%u,db=%d,app=%a,client=%h "
+      - "-c"
+      - "superuser_reserved_connections=10"
+      - "-c"
+      - "idle_in_transaction_session_timeout=60000" 
+      - "-c"
+      - "statement_timeout=30000"
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U DRAGON -d PAYMENT_GATEWAY"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:latest
+    profiles: ["observability"]
+    container_name: postgres_exporter
+    restart: unless-stopped
+    
+    environment:
+      DATA_SOURCE_NAME: "postgresql://DRAGON:DRAGON@postgres:5432/PAYMENT_GATEWAY?sslmode=disable&connect_timeout=10"
+      PG_EXPORTER_AUTO_DISCOVER_DATABASES: "true"
+      PG_EXPORTER_DISABLE_DEFAULT_METRICS: "false"
+      PG_EXPORTER_DISABLE_SETTINGS_METRICS: "false"
+    
+    ports:
+      - "9187:9187"
+    
+    depends_on:
+      - postgres
+    
+    networks:
+      - app_network
+    
+    deploy:
+      resources:
+        limits:
+          cpus: '0.25'
+          memory: 256M
+  pgbouncer:
+    image: edoburu/pgbouncer:latest
+    container_name: pgbouncer_debug
+    restart: unless-stopped
+
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: DRAGON
+      DB_PASSWORD: DRAGON
+      DB_NAME: PAYMENT_GATEWAY
+
+      AUTH_TYPE: scram-sha-256
+
+      POOL_MODE: transaction
+
+      DEFAULT_POOL_SIZE: 20
+      MIN_POOL_SIZE: 5
+      MAX_DB_CONNECTIONS: 100
+      MAX_CLIENT_CONN: 500
+      RESERVE_POOL_SIZE: 5
+      RESERVE_POOL_TIMEOUT: 5
+
+      SERVER_IDLE_TIMEOUT: 600
+      QUERY_TIMEOUT: 30
+      SERVER_CONNECT_TIMEOUT: 10
+      SERVER_LOGIN_RETRY: 5
+
+      SERVER_RESET_QUERY: DISCARD ALL
+      SERVER_RESET_QUERY_ALWAYS: 0
+
+      TCP_KEEPALIVE: 1
+      TCP_KEEPCNT: 5
+      TCP_KEEPIDLE: 30
+      TCP_KEEPINTVL: 10
+
+      ADMIN_USERS: DRAGON
+      STATS_USERS: DRAGON
+
+      LOG_CONNECTIONS: 0
+      LOG_DISCONNECTIONS: 0
+      LOG_POOLER_ERRORS: 1
+
+    ports:
+      - "6432:5432"
+
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    networks:
+      - app_network
+
+    healthcheck:
+      test: ["CMD-SHELL", "PGPASSWORD=DRAGON psql -h localhost -p 5432 -U DRAGON -d pgbouncer -c 'SHOW POOLS;' || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
+
+
+  pyroscope:
+    image: grafana/pyroscope:latest
+    profiles: ["observability"]
+    ports:
+    - 4040:4040
+    networks:
+      - app_network
+
+  redis-auth:
+    image: redis:7.4
+    container_name: redis_auth_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_auth_data:/data 
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-user:
+    image: redis:7.4
+    container_name: redis_user_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6381:6379"
+    volumes:
+      - redis_user_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-card:
+    image: redis:7.4
+    container_name: redis_card_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6382:6379"
+    volumes:
+      - redis_card_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-merchant:
+    image: redis:7.4
+    container_name: redis_merchant_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6383:6379"
+    volumes:
+      - redis_merchant_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-role:
+    image: redis:7.4
+    container_name: redis_role_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6384:6379"
+    volumes:
+      - redis_role_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-saldo:
+    image: redis:7.4
+    container_name: redis_saldo_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6385:6379"
+    volumes:
+      - redis_saldo_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-transaction:
+    image: redis:7.4
+    container_name: redis_transaction_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6386:6379"
+    volumes:
+      - redis_transaction_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-topup:
+    image: redis:7.4
+    container_name: redis_topup_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6387:6379"
+    volumes:
+      - redis_topup_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-transfer:
+    image: redis:7.4
+    container_name: redis_transfer_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6388:6379"
+    volumes:
+      - redis_transfer_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-withdraw:
+    image: redis:7.4
+    container_name: redis_withdraw_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6389:6379"
+    volumes:
+      - redis_withdraw_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  redis-apigateway:
+    image: redis:7.4
+    container_name: redis_apigateway_debug
+    command: >
+      redis-server
+      --requirepass dragon_knight
+      --maxmemory 96mb
+      --maxmemory-policy allkeys-lru
+      --save ""
+      --appendonly no
+      --tcp-backlog 511
+      --timeout 0
+      --tcp-keepalive 300
+      --maxclients 200
+    ports:
+      - "6379:6379" 
+    volumes:
+      - redis_apigateway_data:/data
+    restart: unless-stopped
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD", "redis-cli", "-a", "dragon_knight", "PING"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 5s
+
+  node-exporter:
+    image: quay.io/prometheus/node-exporter
+    profiles: ["observability"]
+    container_name: node-exporter
+    pid: "host"
+    networks:
+      - app_network
+    volumes:
+      - "/:/host:ro,rslave"
+    command:
+      - '--path.rootfs=/host'
+
+  kafka:
+    image: apache/kafka:latest
+    container_name: my-kafka
+    ports:
+      - "9092:9092"
+      - "29092:29092"
+    environment:
+      KAFKA_NODE_ID: 1
+      KAFKA_PROCESS_ROLES: broker,controller
+      KAFKA_LISTENERS: PLAINTEXT://:9092,CONTROLLER://:9093,PLAINTEXT_HOST://:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_CONTROLLER_LISTENER_NAMES: CONTROLLER
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+      KAFKA_CONTROLLER_QUORUM_VOTERS: 1@kafka:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,CONTROLLER:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_LOG_DIRS: /tmp/kraft-combined-logs
+      KAFKA_CLUSTER_ID: kraft-cluster-01
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
+      KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
+    networks:
+      - app_network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server localhost:9092 || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+
+  alertmanager:
+    image: prom/alertmanager:v0.27.0
+    profiles: ["observability"]
+    container_name: alertmanager
+    volumes:
+      - ../../observability/alertmanager.yml:/etc/alertmanager/alertmanager.yml
+    command:
+      - "--config.file=/etc/alertmanager/alertmanager.yml"
+    ports:
+      - "9093:9093"
+    networks:
+      - app_network
+
+  prometheus:
+    image: prom/prometheus:latest
+    profiles: ["observability"]
+    container_name: prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ../../observability/prometheus.yaml:/etc/prometheus/prometheus.yml:ro
+      - ../../observability/rules:/etc/prometheus/rules
+    networks:
+      - app_network
+    depends_on:
+      - otel-collector
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:latest
+    profiles: ["observability"]
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_PATHS_PROVISIONING=/etc/grafana/provisioning
+    volumes:
+      - grafana-storage:/var/lib/grafana
+      - ../../observability/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../observability/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    networks:
+      - app_network
+    depends_on:
+      - prometheus
+      - jaeger
+      - alertmanager
+      - loki
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ../../nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - apigateway
+    networks:
+      - app_network
+
+  otel-collector:
+    image: otel/opentelemetry-collector-contrib:latest
+    profiles: ["observability"]
+    container_name: otel-collector
+    command: ["--config=/etc/otel-collector-config.yaml"]
+    volumes:
+      - ../../observability/otel-collector.yaml:/etc/otel-collector-config.yaml:ro
+    # Host ports remapped (24317/24318/21333/28889) because another Compose
+    # project (piero) already occupies 4317/4318/13133/8889. Internal traffic
+    # (services -> otel-collector:4317, collector -> jaeger:4317) is unaffected.
+    ports:
+      - "24317:4317"
+      - "24318:4318"
+      - "21333:13133"
+      - "28889:8889"
+    depends_on:
+      - jaeger
+    networks:
+      - app_network
+    restart: unless-stopped
+
+  jaeger:
+    image: jaegertracing/all-in-one:1.62.0
+    profiles: ["observability"]
+    container_name: jaeger
+    # UI port remapped to 16687 (and collector to 14251) because another Compose
+    # project (piero) already occupies 16686/14250 on this host.
+    ports:
+      - "16687:16686"
+      - "14251:14250"
+    networks:
+      - app_network
+    environment:
+      - COLLECTOR_OTLP_ENABLED=true
+
+  kafka-exporter:
+    image: danielqsj/kafka-exporter:v1.9.0
+    profiles: ["observability"]
+    container_name: kafka-exporter
+    ports:
+      - "9308:9308"
+    networks:
+      - app_network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    command:
+      - "--kafka.server=my-kafka:9092"
+      - "--web.listen-address=0.0.0.0:9308"
+      - "--log.level=debug"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "wget --quiet --tries=1 --spider http://localhost:9308/metrics || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  loki:
+    container_name: loki
+    image: grafana/loki:3.5.8
+    profiles: ["observability"]
+    ports:
+      - "3100:3100"
+    volumes:
+      - ../../observability/loki-config.yaml:/etc/loki/local-config.yaml
+      - loki-data:/loki
+    command: -config.file=/etc/loki/local-config.yaml
+    networks:
+      - app_network
+
+  apigateway:
+    image: monolith-payment-gateway-grpc/apigateway:latest
+    container_name: apigateway
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    ports:
+      - "5000:5000"
+      - "8091:8091"
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-apigateway:
+        condition: service_healthy
+      auth:
+        condition: service_started
+      card:
+        condition: service_started
+      merchant:
+        condition: service_started
+      user:
+        condition: service_started
+      role:
+        condition: service_started
+      saldo:
+        condition: service_started
+      topup:
+        condition: service_started
+      transaction:
+        condition: service_started
+      transfer:
+        condition: service_started
+      withdraw:
+        condition: service_started
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  migrate:
+    image: monolith-payment-gateway-grpc/migrate:latest
+    container_name: migrate
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    environment:
+      APP_ENV: docker
+      DB_URL: postgres://DRAGON:DRAGON@postgres/PAYMENT_GATEWAY
+    networks:
+      - app_network
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  auth:
+    image: monolith-payment-gateway-grpc/auth:latest
+    container_name: auth
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-auth:
+        condition: service_healthy
+      role:
+        condition: service_started
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  merchant:
+    image: monolith-payment-gateway-grpc/merchant:latest
+    container_name: merchant
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-merchant:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  card:
+    image: monolith-payment-gateway-grpc/card:latest
+    container_name: card
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-card:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  saldo:
+    image: monolith-payment-gateway-grpc/saldo:latest
+    container_name: saldo
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-saldo:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  role:
+    image: monolith-payment-gateway-grpc/role:latest
+    container_name: role
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-role:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  topup:
+    image: monolith-payment-gateway-grpc/topup:latest
+    container_name: topup
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-topup:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  transaction:
+    image: monolith-payment-gateway-grpc/transaction:latest
+    container_name: transaction
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-transaction:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  transfer:
+    image: monolith-payment-gateway-grpc/transfer:latest
+    container_name: transfer
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-transfer:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  user:
+    image: monolith-payment-gateway-grpc/user:latest
+    container_name: user
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-user:
+        condition: service_healthy
+      role:
+        condition: service_started
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+      - REDIS_PASSWORD=dragon_knight
+
+  email:
+    image: monolith-payment-gateway-grpc/email:latest
+    container_name: email
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      kafka:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+  withdraw:
+    image: monolith-payment-gateway-grpc/withdraw:latest
+    container_name: withdraw
+    env_file: ./docker.env
+    volumes:
+      - ./docker.env:/app/docker.env
+    networks:
+      - app_network
+    depends_on:
+      pgbouncer:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+      redis-withdraw:
+        condition: service_healthy
+    environment:
+      - OTEL_ENDPOINT=otel-collector:4317
+      - OTEL_ENABLED=${OTEL_ENABLED:-false}
+      - PYROSCOPE_ENABLED=${PYROSCOPE_ENABLED:-false}
+      - APP_ENV=docker
+      - KAFKA_BROKERS=kafka:9092
+
+
+volumes:
+  loki-data:
+  grafana-storage:
+  postgres_data:
+  kafka_data:
+  redis_apigateway_data:
+  redis_auth_data:
+  redis_user_data:
+  redis_card_data:
+  redis_merchant_data:
+  redis_role_data:
+  redis_saldo_data:
+  redis_transaction_data:
+  redis_topup_data:
+  redis_transfer_data:
+  redis_withdraw_data:
+
+networks:
+  app_network:
+    driver: bridge

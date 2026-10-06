@@ -1,0 +1,22 @@
+syntax = "proto3";
+
+package pb.card.stats;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card/stats";
+
+import "card/card.proto";
+
+service CardStatsWithdrawService {
+  rpc FindMonthlyWithdrawAmount(FindYearAmount)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyWithdrawAmount(FindYearAmount)
+      returns (ApiResponseYearlyAmount) {}
+
+  rpc FindMonthlyWithdrawAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyWithdrawAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseYearlyAmount) {}
+
+  rpc FindDailyWithdrawAmount(FindYearAmount) returns (ApiResponseDailyAmount) {}
+  rpc FindDailyWithdrawAmountByCardNumber(FindYearAmountCardNumber) returns (ApiResponseDailyAmount) {}
+}

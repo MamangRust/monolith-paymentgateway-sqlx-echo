@@ -1,0 +1,61 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-exporter
+  namespace: payment-gateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres-exporter
+  template:
+    metadata:
+      labels:
+        app: postgres-exporter
+    spec:
+      containers:
+      - name: postgres-exporter
+        image: prometheuscommunity/postgres-exporter:latest
+        imagePullPolicy: IfNotPresent
+        env:
+        - name: DATA_SOURCE_NAME
+          value: "postgresql://$(DB_USERNAME):$(DB_PASSWORD)@postgres.payment-gateway.svc.cluster.local:5432/PAYMENT_GATEWAY?sslmode=disable&connect_timeout=10"
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_USERNAME
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: app-secrets
+              key: DB_PASSWORD
+        - name: PG_EXPORTER_AUTO_DISCOVER_DATABASES
+          value: "true"
+        - name: PG_EXPORTER_DISABLE_DEFAULT_METRICS
+          value: "false"
+        - name: PG_EXPORTER_DISABLE_SETTINGS_METRICS
+          value: "false"
+        ports:
+        - containerPort: 9187
+        resources:
+          requests:
+            memory: "64Mi"
+            cpu: "50m"
+          limits:
+            memory: "128Mi"
+            cpu: "150m"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 9187
+          initialDelaySeconds: 5
+          periodSeconds: 10
+          failureThreshold: 5
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 9187
+          initialDelaySeconds: 15
+          periodSeconds: 20
+          failureThreshold: 3

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+package pb.card;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card";
+
+import "card/card.proto";
+import "common/api.proto";
+
+message ApiResponsePaginationCard {
+  string status = 1;
+  string message = 2;
+  repeated CardResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationCardDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated CardResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponseCards {
+  string status = 1;
+  string message = 2;
+  repeated CardResponse data = 3;
+}
+
+service CardQueryService {
+  rpc FindAllCard(FindAllCardRequest) returns (ApiResponsePaginationCard) {}
+  rpc FindByIdCard(FindByIdCardRequest) returns (ApiResponseCard) {}
+  rpc FindByUserIdCard(FindByUserIdCardRequest) returns (ApiResponseCard);
+  rpc FindByActiveCard(FindAllCardRequest)
+      returns (ApiResponsePaginationCardDeleteAt) {}
+  rpc FindByTrashedCard(FindAllCardRequest)
+      returns (ApiResponsePaginationCardDeleteAt) {}
+  rpc FindByCardNumber(FindByCardNumberRequest) returns (ApiResponseCard) {}
+  rpc FindUserCardByCardNumber(FindByCardNumberRequest) returns (CardWithEmailResponse){}
+}

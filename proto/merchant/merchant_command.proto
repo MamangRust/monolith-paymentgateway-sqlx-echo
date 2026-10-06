@@ -1,0 +1,52 @@
+syntax = "proto3";
+
+package pb.merchant;
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/merchant';
+
+import "google/protobuf/empty.proto";
+import "merchant/merchant.proto";
+
+message CreateMerchantRequest {
+  string name = 1;
+  int32 user_id = 2;
+}
+
+message UpdateMerchantRequest {
+  int32 merchant_id = 1;
+  string name = 2;
+  int32 user_id = 3;
+  string status = 4;
+}
+
+message UpdateMerchantStatusRequest {
+  int32 merchant_id = 1;
+  string status = 2;
+}
+
+message ApiResponseMerchantDelete {
+  string status = 1;
+  string message = 2;
+}
+
+message ApiResponseMerchantAll {
+  string status = 1;
+  string message = 2;
+}
+
+service MerchantCommandService {
+  rpc CreateMerchant(CreateMerchantRequest) returns (ApiResponseMerchant) {}
+  rpc UpdateMerchant(UpdateMerchantRequest) returns (ApiResponseMerchant) {}
+  rpc UpdateMerchantStatus(UpdateMerchantStatusRequest)
+      returns (ApiResponseMerchant) {}
+  rpc TrashedMerchant(FindByIdMerchantRequest)
+      returns (ApiResponseMerchantDeleteAt) {}
+  rpc RestoreMerchant(FindByIdMerchantRequest)
+      returns (ApiResponseMerchantDeleteAt) {}
+  rpc DeleteMerchantPermanent(FindByIdMerchantRequest)
+      returns (ApiResponseMerchantDelete) {}
+  rpc RestoreAllMerchant(google.protobuf.Empty)
+      returns (ApiResponseMerchantAll) {}
+  rpc DeleteAllMerchantPermanent(google.protobuf.Empty)
+      returns (ApiResponseMerchantAll) {}
+}

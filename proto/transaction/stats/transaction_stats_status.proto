@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transaction/stats';
+
+package pb.transaction.stats;
+
+import "transaction/transaction.proto";
+
+message TransactionMonthStatusSuccessResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_success = 3;
+  int32 total_amount = 4;
+}
+
+message TransactionYearStatusSuccessResponse {
+  string year = 1;
+  int32 total_success = 2;
+  int32 total_amount = 4;
+}
+
+message TransactionMonthStatusFailedResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_failed = 3;
+  int32 total_amount = 4;
+}
+
+message TransactionYearStatusFailedResponse {
+  string year = 1;
+  int32 total_failed = 2;
+  int32 total_amount = 4;
+}
+
+message ApiResponseTransactionMonthStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated TransactionMonthStatusSuccessResponse data = 3;
+}
+
+message ApiResponseTransactionYearStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated TransactionYearStatusSuccessResponse data = 3;
+}
+
+message ApiResponseTransactionMonthStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated TransactionMonthStatusFailedResponse data = 3;
+}
+
+message ApiResponseTransactionYearStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated TransactionYearStatusFailedResponse data = 3;
+}
+
+service TransactionStatsStatusService {
+  rpc FindMonthlyTransactionStatusSuccess(FindMonthlyTransactionStatus)
+      returns (ApiResponseTransactionMonthStatusSuccess) {}
+  rpc FindYearlyTransactionStatusSuccess(FindYearTransactionStatus)
+      returns (ApiResponseTransactionYearStatusSuccess) {}
+  rpc FindMonthlyTransactionStatusFailed(FindMonthlyTransactionStatus)
+      returns (ApiResponseTransactionMonthStatusFailed) {}
+  rpc FindYearlyTransactionStatusFailed(FindYearTransactionStatus)
+      returns (ApiResponseTransactionYearStatusFailed) {}
+
+  rpc FindMonthlyTransactionStatusSuccessByCardNumber(
+      FindMonthlyTransactionStatusCardNumber)
+      returns (ApiResponseTransactionMonthStatusSuccess) {}
+  rpc FindYearlyTransactionStatusSuccessByCardNumber(
+      FindYearTransactionStatusCardNumber)
+      returns (ApiResponseTransactionYearStatusSuccess) {}
+  rpc FindMonthlyTransactionStatusFailedByCardNumber(
+      FindMonthlyTransactionStatusCardNumber)
+      returns (ApiResponseTransactionMonthStatusFailed) {}
+  rpc FindYearlyTransactionStatusFailedByCardNumber(
+      FindYearTransactionStatusCardNumber)
+      returns (ApiResponseTransactionYearStatusFailed) {}
+}

@@ -1,0 +1,32 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/user';
+
+package pb.user;
+
+import "user/user.proto";
+import "common/api.proto";
+
+message ApiResponsePaginationUserDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated UserResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationUser {
+  string status = 1;
+  string message = 2;
+  repeated UserResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+service UserQueryService {
+    rpc FindAll(FindAllUserRequest) returns (ApiResponsePaginationUser);
+    rpc FindById(FindByIdUserRequest) returns (ApiResponseUser);
+    rpc FindByEmail(FindByEmailRequest) returns (ApiResponseUserWithPassword);
+    rpc FindByVerificationCode(FindByVerificationCodeRequest) returns (ApiResponseUser);
+
+    rpc FindByActive(FindAllUserRequest) returns (ApiResponsePaginationUserDeleteAt);
+    rpc FindByTrashed(FindAllUserRequest) returns (ApiResponsePaginationUserDeleteAt);
+}

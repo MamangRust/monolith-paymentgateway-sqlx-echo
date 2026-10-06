@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/withdraw';
+
+package pb.withdraw;
+
+import "google/protobuf/wrappers.proto";
+
+message FindYearWithdrawStatus { int32 year = 1; }
+
+message FindMonthlyWithdrawStatus {
+  int32 year = 1;
+  int32 month = 2;
+}
+
+message FindYearWithdrawStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindMonthlyWithdrawStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+  int32 month = 3;
+}
+
+message FindYearWithdrawCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindAllWithdrawRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+
+message FindAllWithdrawByCardNumberRequest {
+  string card_number = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  string search = 4;
+}
+
+message FindByIdWithdrawRequest { int32 withdraw_id = 1; }
+
+message WithdrawResponse {
+  int32 withdraw_id = 1;
+  string withdraw_no = 2;
+  string card_number = 3;
+  int32 withdraw_amount = 4;
+  string withdraw_time = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message WithdrawResponseDeleteAt {
+  int32 withdraw_id = 1;
+  string withdraw_no = 2;
+  string card_number = 3;
+  int32 withdraw_amount = 4;
+  string withdraw_time = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  google.protobuf.StringValue deleted_at = 8;
+}
+
+message ApiResponsesWithdraw {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawResponse data = 3;
+}
+
+message ApiResponseWithdraw {
+  string status = 1;
+  string message = 2;
+  WithdrawResponse data = 3;
+}
+
+message ApIResponseWithdrawDeleteAt {
+  string status = 1;
+  string message = 2;
+  WithdrawResponseDeleteAt data = 3;
+}

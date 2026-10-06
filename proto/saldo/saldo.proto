@@ -1,0 +1,54 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/saldo';
+
+package pb.saldo;
+
+import "google/protobuf/wrappers.proto";
+
+message FindMonthlySaldoTotalBalance {
+  int32 year = 1;
+  int32 month = 2;
+}
+
+message FindYearlySaldo { int32 year = 1; }
+
+message FindAllSaldoRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+message FindByIdSaldoRequest { int32 saldo_id = 1; }
+
+message SaldoResponse {
+  int32 saldo_id = 1;
+  string card_number = 2;
+  int32 total_balance = 3;
+  string withdraw_time = 4;
+  int32 withdraw_amount = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message SaldoResponseDeleteAt {
+  int32 saldo_id = 1;
+  string card_number = 2;
+  int32 total_balance = 3;
+  string withdraw_time = 4;
+  int32 withdraw_amount = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  google.protobuf.StringValue deleted_at = 8;
+}
+
+message ApiResponseSaldo {
+  string status = 1;
+  string message = 2;
+  SaldoResponse data = 3;
+}
+
+message ApiResponseSaldoDeleteAt {
+  string status = 1;
+  string message = 2;
+  SaldoResponseDeleteAt data = 3;
+}

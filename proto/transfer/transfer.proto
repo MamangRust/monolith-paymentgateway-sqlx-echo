@@ -1,0 +1,77 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transfer';
+
+package pb.transfer;
+
+import "google/protobuf/wrappers.proto";
+
+message FindByCardNumberTransferRequest {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindYearTransferStatus { int32 year = 1; }
+
+message FindMonthlyTransferStatus {
+  int32 year = 1;
+  int32 month = 2;
+}
+
+message FindYearTransferStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindMonthlyTransferStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+  int32 month = 3;
+}
+
+message FindAllTransferRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+
+message FindByIdTransferRequest { int32 transfer_id = 1; }
+
+message FindTransferByTransferFromRequest { string transfer_from = 1; }
+
+message FindTransferByTransferToRequest { string transfer_to = 1; }
+
+message TransferResponse {
+  int32 id = 1;
+  string transfer_no = 2;
+  string transfer_from = 3;
+  string transfer_to = 4;
+  int32 transfer_amount = 5;
+  string transfer_time = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message TransferResponseDeleteAt {
+  int32 id = 1;
+  string transfer_no = 2;
+  string transfer_from = 3;
+  string transfer_to = 4;
+  int32 transfer_amount = 5;
+  string transfer_time = 6;
+  string created_at = 7;
+  string updated_at = 8;
+  google.protobuf.StringValue deleted_at = 9;
+}
+
+message ApiResponseTransfer {
+  string status = 1;
+  string message = 2;
+  TransferResponse data = 3;
+}
+
+message ApIResponseTransferDeleteAt {
+  string status = 1;
+  string message = 2;
+  TransferResponseDeleteAt data = 3;
+}

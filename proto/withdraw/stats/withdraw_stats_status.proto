@@ -1,0 +1,80 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/withdraw/stats';
+
+package pb.withdraw.stats;
+
+import "withdraw/withdraw.proto";
+
+message WithdrawMonthStatusSuccessResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_success = 3;
+  int32 total_amount = 4;
+}
+
+message WithdrawYearStatusSuccessResponse {
+  string year = 1;
+  int32 total_success = 2;
+  int32 total_amount = 4;
+}
+
+message WithdrawMonthStatusFailedResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_failed = 3;
+  int32 total_amount = 4;
+}
+
+message WithdrawYearStatusFailedResponse {
+  string year = 1;
+  int32 total_failed = 2;
+  int32 total_amount = 4;
+}
+
+message ApiResponseWithdrawMonthStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawMonthStatusSuccessResponse data = 3;
+}
+
+message ApiResponseWithdrawYearStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawYearStatusSuccessResponse data = 3;
+}
+
+message ApiResponseWithdrawMonthStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawMonthStatusFailedResponse data = 3;
+}
+
+message ApiResponseWithdrawYearStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawYearStatusFailedResponse data = 3;
+}
+
+service WithdrawStatsStatusService {
+  rpc FindMonthlyWithdrawStatusSuccess(FindMonthlyWithdrawStatus)
+      returns (ApiResponseWithdrawMonthStatusSuccess) {}
+  rpc FindYearlyWithdrawStatusSuccess(FindYearWithdrawStatus)
+      returns (ApiResponseWithdrawYearStatusSuccess) {}
+  rpc FindMonthlyWithdrawStatusFailed(FindMonthlyWithdrawStatus)
+      returns (ApiResponseWithdrawMonthStatusFailed) {}
+  rpc FindYearlyWithdrawStatusFailed(FindYearWithdrawStatus)
+      returns (ApiResponseWithdrawYearStatusFailed) {}
+
+  rpc FindMonthlyWithdrawStatusSuccessCardNumber(
+      FindMonthlyWithdrawStatusCardNumber)
+      returns (ApiResponseWithdrawMonthStatusSuccess) {}
+  rpc FindYearlyWithdrawStatusSuccessCardNumber(
+      FindYearWithdrawStatusCardNumber)
+      returns (ApiResponseWithdrawYearStatusSuccess) {}
+  rpc FindMonthlyWithdrawStatusFailedCardNumber(
+      FindMonthlyWithdrawStatusCardNumber)
+      returns (ApiResponseWithdrawMonthStatusFailed) {}
+  rpc FindYearlyWithdrawStatusFailedCardNumber(FindYearWithdrawStatusCardNumber)
+      returns (ApiResponseWithdrawYearStatusFailed) {}
+}

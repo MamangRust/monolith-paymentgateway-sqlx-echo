@@ -1,0 +1,76 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transaction';
+
+package pb.transaction;
+
+import "transaction/transaction.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message CreateTransactionRequest {
+  string api_key = 1;
+  string card_number = 2;
+  int32 amount = 3;
+  string payment_method = 4;
+  int32 merchant_id = 5;
+  google.protobuf.Timestamp transaction_time = 6;
+  string idempotency_key = 7;
+}
+
+message UpdateTransactionRequest {
+  int32 transaction_id = 1;
+  string api_key = 2;
+  string card_number = 3;
+  int32 amount = 4;
+  string payment_method = 5;
+  int32 merchant_id = 6;
+  google.protobuf.Timestamp transaction_time = 7;
+}
+
+message ApiResponseTransactionDelete {
+  string status = 1;
+  string message = 2;
+}
+
+message ApiResponseTransactionAll {
+  string status = 1;
+  string message = 2;
+}
+
+message CaptureTransactionRequest {
+  int32 transaction_id = 1;
+  string api_key = 2;
+}
+
+message VoidTransactionRequest {
+  int32 transaction_id = 1;
+  string api_key = 2;
+}
+
+message RefundTransactionRequest {
+  int32 transaction_id = 1;
+  string api_key = 2;
+}
+
+service TransactionCommandService {
+  rpc CreateTransaction(CreateTransactionRequest)
+      returns (ApiResponseTransaction);
+  rpc UpdateTransaction(UpdateTransactionRequest)
+      returns (ApiResponseTransaction);
+  rpc TrashedTransaction(FindByIdTransactionRequest)
+      returns (ApiResponseTransactionDeleteAt);
+  rpc RestoreTransaction(FindByIdTransactionRequest)
+      returns (ApiResponseTransactionDeleteAt);
+  rpc DeleteTransactionPermanent(FindByIdTransactionRequest)
+      returns (ApiResponseTransactionDelete);
+  rpc RestoreAllTransaction(google.protobuf.Empty)
+      returns (ApiResponseTransactionAll) {}
+  rpc DeleteAllTransactionPermanent(google.protobuf.Empty)
+      returns (ApiResponseTransactionAll) {}
+
+  rpc AuthorizeTransaction(CreateTransactionRequest) returns (ApiResponseTransaction) {}
+  rpc CaptureTransaction(CaptureTransactionRequest) returns (ApiResponseTransaction) {}
+  rpc VoidTransaction(VoidTransactionRequest) returns (ApiResponseTransaction) {}
+  rpc RefundTransaction(RefundTransactionRequest) returns (ApiResponseTransaction) {}
+}

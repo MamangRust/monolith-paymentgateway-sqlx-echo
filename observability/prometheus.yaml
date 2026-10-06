@@ -1,0 +1,55 @@
+global:
+  scrape_interval: 10s
+  evaluation_interval: 10s
+
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ["alertmanager:9093"]
+
+rule_files:
+  - rules/go-alerts.yaml
+  - rules/infrastructure-alerts.yaml
+  - rules/postgres-alerts.yaml
+  - rules/kafka-alerts.yaml
+  - rules/node-exporter-alerts.yaml
+
+
+scrape_configs:
+  - job_name: 'golang-app-via-otel'
+    static_configs:
+      - targets: [ 'otel-collector:8889' ]
+        labels:
+          application: 'golang-app'
+          environment: 'production'
+
+  - job_name: 'otel-collector'
+    scrape_interval: 10s
+    static_configs:
+      - targets: [ 'otel-collector:8888' ]
+        labels:
+          application: 'OTel Collector'
+          environment: 'production'
+
+  - job_name: "node-exporter"
+    scrape_interval: 5s
+    static_configs:
+      - targets: [ "node-exporter:9100" ]
+        labels:
+          application: "node-exporter"
+
+  - job_name: 'kafka-exporter'
+    static_configs:
+      - targets: ['kafka-exporter:9308']
+        labels:
+          application: 'Kafka Exporter'
+          environment: 'production'
+
+  - job_name: 'postgres-exporter'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+        labels:
+          application: 'PostgreSQL Exporter'
+          environment: 'production'

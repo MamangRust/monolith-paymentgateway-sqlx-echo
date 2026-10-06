@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: pgbouncer-config
+  namespace: payment-gateway
+data:
+  pgbouncer.ini: |
+    [databases]
+    PAYMENT_GATEWAY = host=postgres.payment-gateway.svc.cluster.local port=5432 dbname=PAYMENT_GATEWAY
+
+    [pgbouncer]
+    listen_addr = 0.0.0.0
+    listen_port = 6432
+    auth_type = md5
+    auth_file = /etc/pgbouncer/userlist.txt
+    pool_mode = session
+    max_client_conn = 100
+    default_pool_size = 20

@@ -1,0 +1,45 @@
+syntax = "proto3";
+
+package pb.merchant.stats;
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/merchant/stats';
+
+import "merchant/merchant.proto";
+
+message MerchantResponseMonthlyTotalAmount {
+  string month = 1;
+  string year = 2;
+  int64 total_amount = 3;
+}
+
+message MerchantResponseYearlyTotalAmount {
+  string year = 1;
+  int64 total_amount = 2;
+}
+
+message ApiResponseMerchantMonthlyTotalAmount {
+  string status = 1;
+  string message = 2;
+  repeated MerchantResponseMonthlyTotalAmount data = 3;
+}
+
+message ApiResponseMerchantYearlyTotalAmount {
+  string status = 1;
+  string message = 2;
+  repeated MerchantResponseYearlyTotalAmount data = 3;
+}
+
+service MerchantStatsTotalAmountService {
+  rpc FindMonthlyTotalAmountMerchant(FindYearMerchant)
+      returns (ApiResponseMerchantMonthlyTotalAmount) {}
+  rpc FindYearlyTotalAmountMerchant(FindYearMerchant)
+      returns (ApiResponseMerchantYearlyTotalAmount) {}
+  rpc FindMonthlyTotalAmountByMerchants(FindYearMerchantById)
+      returns (ApiResponseMerchantMonthlyTotalAmount) {}
+  rpc FindYearlyTotalAmountByMerchants(FindYearMerchantById)
+      returns (ApiResponseMerchantYearlyTotalAmount) {}
+  rpc FindMonthlyTotalAmountByApikey(FindYearMerchantByApikey)
+      returns (ApiResponseMerchantMonthlyTotalAmount) {}
+  rpc FindYearlyTotalAmountByApikey(FindYearMerchantByApikey)
+      returns (ApiResponseMerchantYearlyTotalAmount) {}
+}

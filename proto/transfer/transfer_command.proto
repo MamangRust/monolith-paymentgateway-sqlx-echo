@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transfer';
+
+package pb.transfer;
+
+import "google/protobuf/empty.proto";
+import "transfer/transfer.proto";
+
+message CreateTransferRequest {
+  string transfer_from = 1;
+  string transfer_to = 2;
+  int32 transfer_amount = 3;
+  string idempotency_key = 4;
+}
+
+message UpdateTransferRequest {
+  int32 transfer_id = 1;
+  string transfer_from = 2;
+  string transfer_to = 3;
+  int32 transfer_amount = 4;
+}
+
+message ApiResponseTransferDelete {
+  string status = 1;
+  string message = 2;
+}
+
+message ApiResponseTransferAll {
+  string status = 1;
+  string message = 2;
+}
+
+service TransferCommandService {
+  rpc CreateTransfer(CreateTransferRequest) returns (ApiResponseTransfer);
+  rpc UpdateTransfer(UpdateTransferRequest) returns (ApiResponseTransfer);
+  rpc TrashedTransfer(FindByIdTransferRequest)
+      returns (ApIResponseTransferDeleteAt);
+  rpc RestoreTransfer(FindByIdTransferRequest)
+      returns (ApIResponseTransferDeleteAt);
+  rpc DeleteTransferPermanent(FindByIdTransferRequest)
+      returns (ApiResponseTransferDelete);
+
+  rpc RestoreAllTransfer(google.protobuf.Empty)
+      returns (ApiResponseTransferAll) {}
+  rpc DeleteAllTransferPermanent(google.protobuf.Empty)
+      returns (ApiResponseTransferAll) {}
+}

@@ -1,0 +1,50 @@
+syntax = "proto3";
+
+package pb.merchant_document;
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/merchant_document';
+
+import "google/protobuf/wrappers.proto";
+
+message FindAllMerchantDocumentsRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+
+message FindMerchantDocumentByIdRequest { int32 document_id = 1; }
+
+message MerchantDocument {
+  int32 document_id = 1;
+  int32 merchant_id = 2;
+  string document_type = 3;
+  string document_url = 4;
+  string status = 5;
+  string note = 6;
+  string uploaded_at = 7;
+  string updated_at = 8;
+}
+
+message MerchantDocumentDeleteAt {
+  int32 document_id = 1;
+  int32 merchant_id = 2;
+  string document_type = 3;
+  string document_url = 4;
+  string status = 5;
+  string note = 6;
+  string uploaded_at = 7;
+  string updated_at = 8;
+  google.protobuf.StringValue deleted_at = 9;
+}
+
+message ApiResponseMerchantDocument {
+  string status = 1;
+  string message = 2;
+  MerchantDocument data = 3;
+}
+
+message ApiResponseMerchantDocumentDeleteAt {
+  string status = 1;
+  string message = 2;
+  MerchantDocumentDeleteAt data = 3;
+}

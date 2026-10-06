@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/saldo';
+
+package pb.saldo;
+
+import "common/api.proto";
+import "card/card.proto";
+import "saldo/saldo.proto";
+
+message ApiResponsePaginationSaldo {
+  string status = 1;
+  string message = 2;
+  repeated SaldoResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationSaldoDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated SaldoResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+service SaldoQueryService {
+  rpc FindAllSaldo(FindAllSaldoRequest) returns (ApiResponsePaginationSaldo) {}
+  rpc FindByIdSaldo(FindByIdSaldoRequest) returns (ApiResponseSaldo) {}
+  rpc FindByCardNumber(pb.card.FindByCardNumberRequest)
+      returns (ApiResponseSaldo) {}
+  rpc FindByActive(FindAllSaldoRequest)
+      returns (ApiResponsePaginationSaldoDeleteAt) {}
+  rpc FindByTrashed(FindAllSaldoRequest)
+      returns (ApiResponsePaginationSaldoDeleteAt) {}
+}

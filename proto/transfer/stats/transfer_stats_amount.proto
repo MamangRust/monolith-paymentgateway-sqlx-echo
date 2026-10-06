@@ -1,0 +1,49 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transfer/stats';
+
+package pb.transfer.stats;
+
+import "transfer/transfer.proto";
+
+message TransferMonthAmountResponse {
+  string month = 1;
+  int32 total_amount = 2;
+}
+
+message TransferYearAmountResponse {
+  string year = 1;
+  int32 total_amount = 2;
+}
+
+message ApiResponseTransferMonthAmount {
+  string status = 1;
+  string message = 2;
+  repeated TransferMonthAmountResponse data = 3;
+}
+
+message ApiResponseTransferYearAmount {
+  string status = 1;
+  string message = 2;
+  repeated TransferYearAmountResponse data = 3;
+}
+
+service TransferStatsAmountService {
+  rpc FindMonthlyTransferAmounts(FindYearTransferStatus)
+      returns (ApiResponseTransferMonthAmount) {}
+  rpc FindYearlyTransferAmounts(FindYearTransferStatus)
+      returns (ApiResponseTransferYearAmount) {}
+  rpc FindMonthlyTransferAmountsBySenderCardNumber(
+      FindByCardNumberTransferRequest)
+      returns (ApiResponseTransferMonthAmount) {}
+  rpc FindMonthlyTransferAmountsByReceiverCardNumber(
+      FindByCardNumberTransferRequest)
+      returns (ApiResponseTransferMonthAmount) {}
+
+  rpc FindYearlyTransferAmountsBySenderCardNumber(
+      FindByCardNumberTransferRequest) returns (ApiResponseTransferYearAmount) {
+  }
+  rpc FindYearlyTransferAmountsByReceiverCardNumber(
+      FindByCardNumberTransferRequest) returns (ApiResponseTransferYearAmount) {
+  }
+}

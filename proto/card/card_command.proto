@@ -1,0 +1,69 @@
+syntax = "proto3";
+
+package pb.card;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card";
+
+import "card/card.proto";
+import "google/protobuf/empty.proto";
+import "google/protobuf/timestamp.proto";
+
+message CreateCardRequest {
+  int32 user_id = 1;
+  string card_type = 2;
+  google.protobuf.Timestamp expire_date = 3;
+  string cvv = 4;
+  string card_provider = 5;
+}
+
+message UpdateCardRequest {
+  int32 card_id = 1;
+  int32 user_id = 2;
+  string card_type = 3;
+  google.protobuf.Timestamp expire_date = 4;
+  string cvv = 5;
+  string card_provider = 6;
+}
+
+message ApiResponseCardDelete {
+  string status = 1;
+  string message = 2;
+}
+
+message ApiResponseCardAll {
+  string status = 1;
+  string message = 2;
+}
+
+message ToggleCardStatusRequest {
+  int32 card_id = 1;
+}
+
+message UpdateCreditLimitRequest {
+  int32 card_id = 1;
+  int32 credit_limit = 2;
+}
+
+message RedeemPointsRequest {
+  int32 card_id = 1;
+  int32 points = 2;
+}
+
+service CardCommandService {
+  rpc CreateCard(CreateCardRequest) returns (ApiResponseCard) {}
+  rpc UpdateCard(UpdateCardRequest) returns (ApiResponseCard) {}
+
+  rpc TrashedCard(FindByIdCardRequest) returns (ApiResponseCardDeleteAt) {}
+  rpc RestoreCard(FindByIdCardRequest) returns (ApiResponseCardDeleteAt) {}
+  rpc DeleteCardPermanent(FindByIdCardRequest) returns (ApiResponseCardDelete) {
+  }
+
+  rpc RestoreAllCard(google.protobuf.Empty) returns (ApiResponseCardAll) {}
+  rpc DeleteAllCardPermanent(google.protobuf.Empty)
+      returns (ApiResponseCardAll) {}
+
+  rpc ToggleCardStatus(ToggleCardStatusRequest) returns (ApiResponseCard) {}
+  rpc UpdateCreditLimit(UpdateCreditLimitRequest) returns (ApiResponseCard) {}
+  rpc RedeemPoints(RedeemPointsRequest) returns (ApiResponseCard) {}
+  rpc ProcessBillingCycles(google.protobuf.Empty) returns (google.protobuf.Empty) {}
+}

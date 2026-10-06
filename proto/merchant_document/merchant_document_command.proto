@@ -1,0 +1,61 @@
+syntax = "proto3";
+
+package pb.merchant_document;
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/merchant_document';
+
+import "merchant_document/merchant_document.proto";
+import "google/protobuf/empty.proto";
+
+message CreateMerchantDocumentRequest {
+  int32 merchant_id = 1;
+  string document_type = 2;
+  string document_url = 3;
+}
+
+message UpdateMerchantDocumentRequest {
+  int32 document_id = 1;
+  int32 merchant_id = 2;
+  string document_type = 3;
+  string document_url = 4;
+  string note = 5;
+  string status = 6;
+}
+
+message UpdateMerchantDocumentStatusRequest {
+  int32 document_id = 1;
+  int32 merchant_id = 2;
+  string note = 3;
+  string status = 4;
+}
+
+message ApiResponseMerchantDocumentDelete {
+  string status = 1;
+  string message = 2;
+}
+
+message ApiResponseMerchantDocumentAll {
+  string status = 1;
+  string message = 2;
+}
+
+service MerchantDocumentCommandService {
+  rpc Create(CreateMerchantDocumentRequest)
+      returns (ApiResponseMerchantDocument) {}
+  rpc Update(UpdateMerchantDocumentRequest)
+      returns (ApiResponseMerchantDocument) {}
+  rpc UpdateStatus(UpdateMerchantDocumentStatusRequest)
+      returns (ApiResponseMerchantDocument) {}
+
+  rpc Trashed(FindMerchantDocumentByIdRequest)
+      returns (ApiResponseMerchantDocumentDeleteAt) {}
+  rpc Restore(FindMerchantDocumentByIdRequest)
+      returns (ApiResponseMerchantDocumentDeleteAt) {}
+  rpc DeletePermanent(FindMerchantDocumentByIdRequest)
+      returns (ApiResponseMerchantDocumentDelete) {}
+
+  rpc RestoreAll(google.protobuf.Empty)
+      returns (ApiResponseMerchantDocumentAll) {}
+  rpc DeleteAllPermanent(google.protobuf.Empty)
+      returns (ApiResponseMerchantDocumentAll) {}
+}

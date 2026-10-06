@@ -1,0 +1,37 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/withdraw';
+
+package pb.withdraw;
+
+import "common/api.proto";
+import "card/card.proto";
+import "withdraw/withdraw.proto";
+
+message ApiResponsePaginationWithdraw {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationWithdrawDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+service WithdrawQueryService {
+  rpc FindAllWithdraw(FindAllWithdrawRequest)
+      returns (ApiResponsePaginationWithdraw);
+  rpc FindAllWithdrawByCardNumber(FindAllWithdrawByCardNumberRequest)
+      returns (ApiResponsePaginationWithdraw);
+  rpc FindByIdWithdraw(FindByIdWithdrawRequest) returns (ApiResponseWithdraw);
+  rpc FindByCardNumber(pb.card.FindByCardNumberRequest)
+      returns (ApiResponsesWithdraw);
+  rpc FindByActive(FindAllWithdrawRequest)
+      returns (ApiResponsePaginationWithdrawDeleteAt);
+  rpc FindByTrashed(FindAllWithdrawRequest)
+      returns (ApiResponsePaginationWithdrawDeleteAt);
+}

@@ -1,0 +1,36 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/saldo/stats';
+
+package pb.saldo.stats;
+
+import "saldo/saldo.proto";
+
+message SaldoMonthBalanceResponse {
+  string month = 1;
+  int32 total_balance = 2;
+}
+
+message SaldoYearBalanceResponse {
+  string year = 1;
+  int32 total_balance = 2;
+}
+
+message ApiResponseMonthSaldoBalances {
+  string status = 1;
+  string message = 2;
+  repeated SaldoMonthBalanceResponse data = 3;
+}
+
+message ApiResponseYearSaldoBalances {
+  string status = 1;
+  string message = 2;
+  repeated SaldoYearBalanceResponse data = 3;
+}
+
+service SaldoStatsBalanceService {
+  rpc FindMonthlySaldoBalances(FindYearlySaldo)
+      returns (ApiResponseMonthSaldoBalances) {}
+  rpc FindYearlySaldoBalances(FindYearlySaldo)
+      returns (ApiResponseYearSaldoBalances) {}
+}

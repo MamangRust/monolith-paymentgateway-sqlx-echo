@@ -1,0 +1,33 @@
+syntax = "proto3";
+
+package pb.merchant_document;
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/merchant_document';
+
+import "merchant_document/merchant_document.proto";
+import "common/api.proto";
+
+message ApiResponsePaginationMerchantDocument {
+  string status = 1;
+  string message = 2;
+  repeated MerchantDocument data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationMerchantDocumentAt {
+  string status = 1;
+  string message = 2;
+  repeated MerchantDocumentDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+service MerchantDocumentQueryService {
+  rpc FindAll(FindAllMerchantDocumentsRequest)
+      returns (ApiResponsePaginationMerchantDocument) {}
+  rpc FindAllActive(FindAllMerchantDocumentsRequest)
+      returns (ApiResponsePaginationMerchantDocumentAt) {}
+  rpc FindAllTrashed(FindAllMerchantDocumentsRequest)
+      returns (ApiResponsePaginationMerchantDocumentAt) {}
+  rpc FindById(FindMerchantDocumentByIdRequest)
+      returns (ApiResponseMerchantDocument) {}
+}

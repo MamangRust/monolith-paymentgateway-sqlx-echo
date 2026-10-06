@@ -1,0 +1,10 @@
+observability/loki-data
+postman
+test_api
+bin/
+vendor/
+.env
+*.log
+tmp/
+.idea/
+.vscode/

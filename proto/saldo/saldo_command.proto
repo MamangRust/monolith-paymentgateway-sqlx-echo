@@ -1,0 +1,57 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/saldo';
+
+package pb.saldo;
+
+import "saldo/saldo.proto";
+import "google/protobuf/empty.proto";
+
+message CreateSaldoRequest {
+  string card_number = 1;
+  int32 total_balance = 2;
+}
+
+message UpdateSaldoRequest {
+  int32 saldo_id = 1;
+  string card_number = 2;
+  int32 total_balance = 3;
+}
+
+message ApiResponseSaldoDelete {
+  string status = 1;
+  string message = 2;
+}
+
+message ApiResponseSaldoAll {
+  string status = 1;
+  string message = 2;
+}
+
+message UpdateSaldoWithdrawRequest {
+  string card_number = 1;
+  int32 total_balance = 2;
+  string withdraw_time = 3;
+  int32 withdraw_amount = 4;
+}
+
+message UpdateSaldoBalanceRequest {
+  string card_number = 1;
+  int32 total_balance = 2;
+}
+
+service SaldoCommandService {
+  rpc CreateSaldo(CreateSaldoRequest) returns (ApiResponseSaldo) {}
+  rpc UpdateSaldo(UpdateSaldoRequest) returns (ApiResponseSaldo) {}
+  rpc UpdateSaldoBalance(UpdateSaldoBalanceRequest) returns (ApiResponseSaldo) {}
+  rpc UpdateSaldoWithdraw(UpdateSaldoWithdrawRequest)
+      returns (ApiResponseSaldo) {}
+  rpc TrashedSaldo(FindByIdSaldoRequest) returns (ApiResponseSaldoDeleteAt) {}
+  rpc RestoreSaldo(FindByIdSaldoRequest) returns (ApiResponseSaldoDeleteAt) {}
+  rpc DeleteSaldoPermanent(FindByIdSaldoRequest)
+      returns (ApiResponseSaldoDelete) {}
+
+  rpc RestoreAllSaldo(google.protobuf.Empty) returns (ApiResponseSaldoAll) {}
+  rpc DeleteAllSaldoPermanent(google.protobuf.Empty)
+      returns (ApiResponseSaldoAll) {}
+}

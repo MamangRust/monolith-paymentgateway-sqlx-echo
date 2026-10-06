@@ -1,0 +1,132 @@
+syntax = "proto3";
+
+package pb.card;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card";
+
+import "google/protobuf/wrappers.proto";
+
+message FindAllCardRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+
+message FindByCardNumberRequest { string card_number = 1; }
+
+message FindByUserIdCardRequest { int32 user_id = 1; }
+
+message FindByIdCardRequest { int32 card_id = 1; }
+
+message FindYearAmount { int32 year = 1; }
+
+message FindYearAmountCardNumber {
+  int32 year = 1;
+  string card_number = 2;
+}
+
+message CardResponse {
+  int32 id = 1;
+  int32 user_id = 2;
+  string card_number = 3;
+  string card_type = 4;
+  string expire_date = 5;
+  string cvv = 6;
+  string card_provider = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  string status = 10;
+  int32 credit_limit = 11;
+  int32 outstanding_balance = 12;
+  int32 reward_points = 13;
+}
+
+message CardWithEmailResponse {
+  int32 id = 1;
+  int32 user_id = 2;
+  string email = 3;
+  string card_number = 4;
+  string card_type = 5;
+  string expire_date = 6;
+  string cvv = 7;
+  string card_provider = 8;
+  string created_at = 9;
+  string updated_at = 10;
+  string status = 11;
+  int32 credit_limit = 12;
+  int32 outstanding_balance = 13;
+  int32 reward_points = 14;
+}
+
+message CardResponseDeleteAt {
+  int32 id = 1;
+  int32 user_id = 2;
+  string card_number = 3;
+  string card_type = 4;
+  string expire_date = 5;
+  string cvv = 6;
+  string card_provider = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  google.protobuf.StringValue deleted_at = 10;
+  string status = 11;
+  int32 credit_limit = 12;
+  int32 outstanding_balance = 13;
+  int32 reward_points = 14;
+}
+
+message ApiResponseCard {
+  string status = 1;
+  string message = 2;
+  CardResponse data = 3;
+}
+
+message ApiResponseCardDeleteAt {
+  string status = 1;
+  string message = 2;
+  CardResponseDeleteAt data = 3;
+}
+
+message CardResponseMonthlyAmount {
+  string month = 1;
+  int64 total_amount = 2;
+}
+
+message CardResponseYearlyAmount {
+  string year = 1;
+  int64 total_amount = 2;
+}
+
+message ApiResponseMonthlyAmount {
+  string status = 1;
+  string message = 2;
+  repeated CardResponseMonthlyAmount data = 3;
+}
+
+message ApiResponseYearlyAmount {
+  string status = 1;
+  string message = 2;
+  repeated CardResponseYearlyAmount data = 3;
+}
+
+message FindMonthAmount {
+  int32 year = 1;
+  int32 month = 2;
+}
+
+message FindMonthAmountCardNumber {
+  int32 year = 1;
+  int32 month = 2;
+  string card_number = 3;
+}
+
+message CardResponseDailyAmount {
+  string date = 1;
+  int64 total_amount = 2;
+}
+
+message ApiResponseDailyAmount {
+  string status = 1;
+  string message = 2;
+  CardResponseDailyAmount data = 3;
+}

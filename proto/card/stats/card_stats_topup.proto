@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package pb.card.stats;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card/stats";
+
+import "card/card.proto";
+
+service CardStatsTopupService {
+  rpc FindMonthlyTopupAmount(FindYearAmount)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyTopupAmount(FindYearAmount) returns (ApiResponseYearlyAmount) {}
+
+  rpc FindMonthlyTopupAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyTopupAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseYearlyAmount) {}
+
+  rpc FindDailyTopupAmount(FindYearAmount) returns (ApiResponseDailyAmount) {}
+  rpc FindDailyTopupAmountByCardNumber(FindYearAmountCardNumber) returns (ApiResponseDailyAmount) {}
+}

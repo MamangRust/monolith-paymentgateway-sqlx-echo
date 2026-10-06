@@ -1,0 +1,81 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transfer/stats';
+
+package pb.transfer.stats;
+
+import "transfer/transfer.proto";
+
+message TransferMonthStatusSuccessResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_success = 3;
+  int32 total_amount = 4;
+}
+
+message TransferYearStatusSuccessResponse {
+  string year = 1;
+  int32 total_success = 2;
+  int32 total_amount = 4;
+}
+
+message TransferMonthStatusFailedResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_failed = 3;
+  int32 total_amount = 4;
+}
+
+message TransferYearStatusFailedResponse {
+  string year = 1;
+  int32 total_failed = 2;
+  int32 total_amount = 4;
+}
+
+message ApiResponseTransferMonthStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated TransferMonthStatusSuccessResponse data = 3;
+}
+
+message ApiResponseTransferYearStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated TransferYearStatusSuccessResponse data = 3;
+}
+
+message ApiResponseTransferMonthStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated TransferMonthStatusFailedResponse data = 3;
+}
+
+message ApiResponseTransferYearStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated TransferYearStatusFailedResponse data = 3;
+}
+
+service TransferStatsStatusService {
+  rpc FindMonthlyTransferStatusSuccess(FindMonthlyTransferStatus)
+      returns (ApiResponseTransferMonthStatusSuccess) {}
+  rpc FindYearlyTransferStatusSuccess(FindYearTransferStatus)
+      returns (ApiResponseTransferYearStatusSuccess) {}
+  rpc FindMonthlyTransferStatusFailed(FindMonthlyTransferStatus)
+      returns (ApiResponseTransferMonthStatusFailed) {}
+  rpc FindYearlyTransferStatusFailed(FindYearTransferStatus)
+      returns (ApiResponseTransferYearStatusFailed) {}
+
+  rpc FindMonthlyTransferStatusSuccessByCardNumber(
+      FindMonthlyTransferStatusCardNumber)
+      returns (ApiResponseTransferMonthStatusSuccess) {}
+  rpc FindYearlyTransferStatusSuccessByCardNumber(
+      FindYearTransferStatusCardNumber)
+      returns (ApiResponseTransferYearStatusSuccess) {}
+  rpc FindMonthlyTransferStatusFailedByCardNumber(
+      FindMonthlyTransferStatusCardNumber)
+      returns (ApiResponseTransferMonthStatusFailed) {}
+  rpc FindYearlyTransferStatusFailedByCardNumber(
+      FindYearTransferStatusCardNumber)
+      returns (ApiResponseTransferYearStatusFailed) {}
+}

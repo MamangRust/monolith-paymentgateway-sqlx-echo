@@ -1,0 +1,158 @@
+name: Build and push
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+    tags:
+      - v*
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: testdb
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpass
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.25"
+          cache: true
+
+      - name: Install mocks
+        run: |
+          go install go.uber.org/mock/mockgen@v0.6.0
+
+      - name: Generate mocks (check they're up-to-date)
+        run: |
+          for svc in auth card merchant saldo topup transaction transfer user role withdraw; do
+            if [ -d "service/$svc/service" ]; then
+              (cd "service/$svc" && go generate ./...)
+            fi
+          done
+          (cd pkg && go generate ./...)
+
+      - name: Vet all modules
+        run: |
+          go work vendor
+          for mod in service/*/go.mod; do
+            dir=$(dirname $mod)
+            echo "--- vetting $dir ---"
+            (cd $dir && go vet ./...)
+          done
+          (cd pkg && go vet ./...)
+          (cd shared && go vet ./...)
+          (cd pb && go vet ./...)
+
+      - name: Unit tests (with race detection)
+        run: |
+          cd tests && go test -race -count=1 -short -coverprofile=unit-coverage.out ./...
+
+      - name: Run unit tests in pkg/
+        run: |
+          cd pkg && go test -race -count=1 -short -coverprofile=coverage.out ./...
+
+      - name: Integration tests (with real DB + Redis services)
+        env:
+          TEST_DATABASE_URL: postgres://testuser:testpass@localhost:5432/testdb?sslmode=disable
+          TEST_REDIS_URL: redis://localhost:6379/0
+        run: |
+          set -o pipefail
+          cd tests && go test -count=1 -coverprofile=int-coverage.out \
+            -run "Test.*Suite" -v \
+            ./auth/... \
+            ./card/... \
+            ./merchant/... \
+            ./saldo/... \
+            ./topup/... \
+            ./transaction/... \
+            ./transfer/... \
+            ./user/... \
+            ./role/... \
+            ./withdraw/... 2>&1 | tail -30
+
+      - name: Upload coverage
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: coverage
+          path: tests/*.out
+
+  docker:
+    runs-on: ubuntu-latest
+    needs: [test]
+    if: github.event_name != 'pull_request'
+
+    strategy:
+      matrix:
+        service: [apigateway, auth, user, role, card, merchant, saldo, topup, transaction, transfer, withdraw, email, migrate]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Metadata
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/mamangrust/monolith-payment-gateway-grpc/${{ matrix.service }}
+          tags: |
+            type=ref,event=branch,name=main
+            type=ref,event=tag
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=semver,pattern={{major}}
+          labels: |
+            org.opencontainers.image.title=${{ matrix.service }}
+            org.opencontainers.image.description=Microservice ${{ matrix.service }} for Payment Gateway
+            org.opencontainers.image.source=https://github.com/mamangrust/monolith-payment-gateway-grpc
+            org.opencontainers.image.url=https://github.com/mamangrust/monolith-payment-gateway-grpc
+            org.opencontainers.image.licenses=MIT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.repository_owner }}
+          password: ${{ secrets.MY_TOKEN }}
+
+      - name: Debug Build Info
+        run: |
+          echo "Building service: ${{ matrix.service }}"
+          echo "Dockerfile: service/${{ matrix.service }}/Dockerfile"
+
+      - name: Build and push
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          context: .
+          file: ./service/${{ matrix.service }}/Dockerfile
+          tags: |
+            ${{ steps.meta.outputs.tags }}
+            ghcr.io/mamangrust/monolith-payment-gateway-grpc/${{ matrix.service }}:latest
+          labels: ${{ steps.meta.outputs.labels }}

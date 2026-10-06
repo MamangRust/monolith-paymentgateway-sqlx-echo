@@ -1,0 +1,48 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/topup';
+
+package pb.topup;
+
+import "common/api.proto";
+import "topup/topup.proto";
+
+message ApiResponsePaginationTopup {
+  string status = 1;
+  string message = 2;
+  repeated TopupResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationTopupDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated TopupResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message FindAllTopupRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+
+message FindAllTopupByCardNumberRequest {
+  string card_number = 1;
+  int32 page = 2;
+  int32 page_size = 3;
+  string search = 4;
+}
+
+service TopupQueryService {
+  rpc FindAllTopup(FindAllTopupRequest) returns (ApiResponsePaginationTopup);
+  rpc FindAllTopupByCardNumber(FindAllTopupByCardNumberRequest)
+      returns (ApiResponsePaginationTopup);
+  rpc FindByIdTopup(FindByIdTopupRequest) returns (ApiResponseTopup);
+  rpc FindByCardNumberTopup(FindByCardNumberTopupRequest)
+      returns (ApiResponseTopup);
+  rpc FindByActive(FindAllTopupRequest)
+      returns (ApiResponsePaginationTopupDeleteAt);
+  rpc FindByTrashed(FindAllTopupRequest)
+      returns (ApiResponsePaginationTopupDeleteAt);
+}

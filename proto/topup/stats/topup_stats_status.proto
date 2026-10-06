@@ -1,0 +1,78 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/topup/stats';
+
+package pb.topup.stats;
+
+import "topup/topup.proto";
+
+message TopupMonthStatusSuccessResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_success = 3;
+  int32 total_amount = 4;
+}
+
+message TopupYearStatusSuccessResponse {
+  string year = 1;
+  int32 total_success = 2;
+  int32 total_amount = 4;
+}
+
+message TopupMonthStatusFailedResponse {
+  string year = 1;
+  string month = 2;
+  int32 total_failed = 3;
+  int32 total_amount = 4;
+}
+
+message TopupYearStatusFailedResponse {
+  string year = 1;
+  int32 total_failed = 2;
+  int32 total_amount = 4;
+}
+
+message ApiResponseTopupMonthStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated TopupMonthStatusSuccessResponse data = 3;
+}
+
+message ApiResponseTopupYearStatusSuccess {
+  string status = 1;
+  string message = 2;
+  repeated TopupYearStatusSuccessResponse data = 3;
+}
+
+message ApiResponseTopupMonthStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated TopupMonthStatusFailedResponse data = 3;
+}
+
+message ApiResponseTopupYearStatusFailed {
+  string status = 1;
+  string message = 2;
+  repeated TopupYearStatusFailedResponse data = 3;
+}
+
+service TopupStatsStatusService {
+  rpc FindMonthlyTopupStatusSuccess(FindMonthlyTopupStatus)
+      returns (ApiResponseTopupMonthStatusSuccess) {}
+  rpc FindYearlyTopupStatusSuccess(FindYearTopupStatus)
+      returns (ApiResponseTopupYearStatusSuccess) {}
+  rpc FindMonthlyTopupStatusFailed(FindMonthlyTopupStatus)
+      returns (ApiResponseTopupMonthStatusFailed) {}
+  rpc FindYearlyTopupStatusFailed(FindYearTopupStatus)
+      returns (ApiResponseTopupYearStatusFailed) {}
+
+  rpc FindMonthlyTopupStatusSuccessByCardNumber(
+      FindMonthlyTopupStatusCardNumber)
+      returns (ApiResponseTopupMonthStatusSuccess) {}
+  rpc FindYearlyTopupStatusSuccessByCardNumber(FindYearTopupStatusCardNumber)
+      returns (ApiResponseTopupYearStatusSuccess) {}
+  rpc FindMonthlyTopupStatusFailedByCardNumber(FindMonthlyTopupStatusCardNumber)
+      returns (ApiResponseTopupMonthStatusFailed) {}
+  rpc FindYearlyTopupStatusFailedByCardNumber(FindYearTopupStatusCardNumber)
+      returns (ApiResponseTopupYearStatusFailed) {}
+}

@@ -1,0 +1,38 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kafka-create-email-topics
+  namespace: payment-gateway
+spec:
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+        - name: kafka-topic-init
+          image: bitnami/kafka:3.7.0
+          command:
+            - /bin/sh
+            - -c
+            - |
+              echo "Creating Kafka topics..."
+              for topic in \
+                email-service-topic-auth-register \
+                email-service-topic-auth-forgot-password \
+                email-service-topic-auth-verify-code-success \
+                email-service-topic-saldo-create \
+                email-service-topic-topup-create \
+                email-service-topic-transaction-create \
+                email-service-topic-transfer-create \
+                email-service-topic-merchant-create \
+                email-service-topic-merchant-update-status \
+                email-service-topic-merchant-document-create \
+                email-service-topic-merchant-document-update-status; do
+                kafka-topics.sh \
+                  --bootstrap-server kafka.payment-gateway.svc.cluster.local:9092 \
+                  --create \
+                  --if-not-exists \
+                  --replication-factor 1 \
+                  --partitions 1 \
+                  --topic "$topic"
+              done
+              echo "All topics created (or already exist)."

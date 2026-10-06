@@ -1,0 +1,38 @@
+syntax = "proto3";
+
+package pb.merchant;
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/merchant';
+
+import "google/protobuf/wrappers.proto";
+import "merchant/merchant.proto";
+import "common/api.proto";
+
+message MerchantTransactionResponse {
+  int32 id = 1;
+  string card_number = 2;
+  int32 amount = 3;
+  string payment_method = 4;
+  int32 merchant_id = 5;
+  string merchant_name = 6;
+  string transaction_time = 7;
+  string created_at = 8;
+  string updated_at = 9;
+  google.protobuf.StringValue deleted_at = 10;
+}
+
+message ApiResponsePaginationMerchantTransaction {
+  string status = 1;
+  string message = 2;
+  repeated MerchantTransactionResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+service MerchantTransactionService {
+  rpc FindAllTransactionMerchant(FindAllMerchantRequest)
+      returns (ApiResponsePaginationMerchantTransaction) {}
+  rpc FindAllTransactionByApikey(FindAllMerchantApikey)
+      returns (ApiResponsePaginationMerchantTransaction) {}
+  rpc FindAllTransactionByMerchant(FindAllMerchantTransaction)
+      returns (ApiResponsePaginationMerchantTransaction) {}
+}

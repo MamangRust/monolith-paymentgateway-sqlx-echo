@@ -1,0 +1,87 @@
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: apigateway-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: apigateway
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: card-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: card
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: transaction-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: transaction
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: transfer-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: transfer
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: topup-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: topup
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: withdraw-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: withdraw
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: saldo-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: saldo
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: merchant-pdb
+  namespace: payment-gateway
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app: merchant

@@ -1,0 +1,40 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/role';
+
+package pb.role;
+
+import "common/api.proto";
+import "role/role.proto";
+
+message FindByNameRoleRequest {
+  string name = 1;
+}
+
+message ApiResponsePaginationRole {
+  string status = 1;
+  string message = 2;
+  repeated RoleResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationRoleDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated RoleResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+service RoleService {
+  rpc FindAllRole(FindAllRoleRequest) returns (ApiResponsePaginationRole) {}
+  rpc FindByIdRole(FindByIdRoleRequest) returns (ApiResponseRole) {}
+
+  rpc FindByActive(FindAllRoleRequest)
+      returns (ApiResponsePaginationRoleDeleteAt) {}
+  rpc FindByTrashed(FindAllRoleRequest)
+      returns (ApiResponsePaginationRoleDeleteAt) {}
+
+  rpc FindByUserId(FindByIdUserRoleRequest) returns (ApiResponsesRole) {}
+
+  rpc FindByNameRole(FindByNameRoleRequest) returns (ApiResponseRole) {}
+}

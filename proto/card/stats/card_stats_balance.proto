@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+package pb.card.stats;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card/stats";
+
+message FindYearBalance { int32 year = 1; }
+
+message FindYearBalanceCardNumber {
+  int32 year = 1;
+  string card_number = 2;
+}
+
+message CardResponseMonthlyBalance {
+  string month = 1;
+  int64 total_balance = 2;
+}
+
+message CardResponseYearlyBalance {
+  string year = 1;
+  int64 total_balance = 2;
+}
+
+message ApiResponseMonthlyBalance {
+  string status = 1;
+  string message = 2;
+  repeated CardResponseMonthlyBalance data = 3;
+}
+
+message ApiResponseYearlyBalance {
+  string status = 1;
+  string message = 2;
+  repeated CardResponseYearlyBalance data = 3;
+}
+
+service CardStatsBalanceService {
+  rpc FindMonthlyBalance(FindYearBalance) returns (ApiResponseMonthlyBalance) {}
+  rpc FindYearlyBalance(FindYearBalance) returns (ApiResponseYearlyBalance) {}
+
+  rpc FindMonthlyBalanceByCardNumber(FindYearBalanceCardNumber)
+      returns (ApiResponseMonthlyBalance) {}
+  rpc FindYearlyBalanceByCardNumber(FindYearBalanceCardNumber)
+      returns (ApiResponseYearlyBalance) {}
+}

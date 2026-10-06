@@ -1,0 +1,44 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/topup/stats';
+
+package pb.topup.stats;
+
+import "topup/topup.proto";
+
+message TopupMonthMethodResponse {
+  string month = 1;
+  string topup_method = 2;
+  int32 total_topups = 3;
+  int32 total_amount = 4;
+}
+
+message TopupYearlyMethodResponse {
+  string year = 1;
+  string topup_method = 2;
+  int32 total_topups = 3;
+  int32 total_amount = 4;
+}
+
+message ApiResponseTopupMonthMethod {
+  string status = 1;
+  string message = 2;
+  repeated TopupMonthMethodResponse data = 3;
+}
+
+message ApiResponseTopupYearMethod {
+  string status = 1;
+  string message = 2;
+  repeated TopupYearlyMethodResponse data = 3;
+}
+
+service TopupStatsMethodService {
+  rpc FindMonthlyTopupMethods(FindYearTopupStatus)
+      returns (ApiResponseTopupMonthMethod) {}
+  rpc FindYearlyTopupMethods(FindYearTopupStatus)
+      returns (ApiResponseTopupYearMethod) {}
+  rpc FindMonthlyTopupMethodsByCardNumber(FindYearTopupCardNumber)
+      returns (ApiResponseTopupMonthMethod) {}
+  rpc FindYearlyTopupMethodsByCardNumber(FindYearTopupCardNumber)
+      returns (ApiResponseTopupYearMethod) {}
+}

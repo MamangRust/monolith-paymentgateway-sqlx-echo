@@ -1,0 +1,1714 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: prometheus-rules
+  namespace: payment-gateway
+data:
+  golang-runtime-alerts.yaml: |
+    groups:
+      - name: Golang Runtime Alerts
+        rules:
+          - alert: HighGCDuration
+            expr: histogram_quantile(0.99, rate(go_gc_duration_seconds_bucket[5m])) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High GC duration detected"
+              description: "99th percentile of GC duration is greater than 0.5s for 2 minutes"
+
+          - alert: HighHeapMemoryUsage
+            expr: go_memstats_heap_alloc_bytes > 1.5e+09  # 1.5 GB
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High heap memory usage"
+              description: "Heap memory usage has exceeded 1.5GB for 2 minutes"
+
+          - alert: HighTotalGoMemoryUsage
+            expr: go_memstats_sys_bytes > 2e+09  # 2 GB
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Total Go runtime memory usage too high"
+              description: "Go runtime has used more than 2GB of total memory"
+
+          - alert: HighLiveObjects
+            expr: (go_memstats_mallocs_total - go_memstats_frees_total) > 1e+06
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High number of live objects in memory"
+              description: "There are more than 1 million live objects (mallocs - frees) for 5 minutes"
+
+          - alert: HighAllocationRate
+            expr: rate(go_memstats_mallocs_total[1m]) > 50000
+            for: 1m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory allocation rate"
+              description: "Go is allocating more than 50,000 objects/sec"
+
+          - alert: HighGoroutines
+            expr: go_goroutines > 500
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Too many goroutines"
+              description: "Number of goroutines has exceeded 500"
+
+          - alert: HighStackMemoryUsage
+            expr: go_memstats_stack_inuse_bytes > 200e+06  # 200 MB
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High stack memory usage"
+              description: "Stack memory usage is over 200MB"
+
+  
+  kafka-exporter-alerts.yaml: |
+    groups:
+      - name: Kafka Exporter Alerts
+        rules:
+
+          - alert: KafkaUnderReplicatedPartitions
+            expr: sum(kafka_topic_partition_under_replicated_partition) > 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Kafka topic has under-replicated partitions"
+              description: |
+                One or more Kafka topics have under-replicated partitions for more than 2 minutes.
+                This can indicate potential replication or broker issues.
+
+  node-exporter-alerts.yaml: |
+    groups:
+      - name: node-exporter-alerts
+        rules:
+          - alert: HighCpuUsage
+            expr: 100 - (avg by(instance)(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage on {{ $labels.instance }}"
+              description: "CPU usage is above 90% for more than 2 minutes."
+
+          - alert: HighMemoryUsage
+            expr: (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes) / node_memory_MemTotal_bytes > 0.9
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage on {{ $labels.instance }}"
+              description: "Memory usage is above 90% for more than 2 minutes."
+
+          - alert: HighDiskUsage
+            expr: (node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} - node_filesystem_free_bytes{fstype!~"tmpfs|overlay"}) / node_filesystem_size_bytes{fstype!~"tmpfs|overlay"} > 0.9
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High disk usage on {{ $labels.instance }}"
+              description: "Disk usage is above 90% on mountpoint {{ $labels.mountpoint }} for more than 2 minutes."
+
+          - alert: HighDiskIOLatency
+            expr: rate(node_disk_io_time_seconds_total[5m]) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High disk IO latency on {{ $labels.instance }}"
+              description: "Disk IO latency is over 50% of the time during the last 5 minutes."
+
+          - alert: NodeDown
+            expr: up{job="node-exporter"} == 0
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Node exporter down on {{ $labels.instance }}"
+              description: "Node exporter is not reachable for more than 1 minute."
+
+          - alert: FilesystemReadOnly
+            expr: node_filesystem_readonly{fstype!~"tmpfs"} == 1
+            for: 1m
+            labels:
+              severity: critical
+            annotations:
+              summary: "Filesystem is read-only on {{ $labels.instance }}"
+              description: "Mountpoint {{ $labels.mountpoint }} is in read-only mode."
+
+  otel-collector-alerts.yaml: |
+    groups:
+      - name: otel-collector-alerts
+        rules:
+          - alert: OTelCollectorDown
+            expr: up{job=~"otel-collector.*"} == 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "OpenTelemetry Collector is down on {{ $labels.instance }}"
+              description: "OTel Collector {{ $labels.job }} is not reachable for more than 2 minutes."
+
+          - alert: OTelCollectorScrapeFailed
+            expr: rate(otelcol_exporter_enqueue_failed_log_records[5m]) > 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "OTel Collector exporter failed to enqueue logs"
+              description: "Exporter failed to enqueue log records consistently for 5 minutes. Check exporters in {{ $labels.job }}."
+
+          - alert: OTelCollectorQueueDroppedSpans
+            expr: rate(otelcol_exporter_send_failed_spans[5m]) > 0
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "OTel Collector dropped spans due to queue overflow"
+              description: "Collector {{ $labels.job }} is dropping spans due to queue issues."
+
+          - alert: OTelCollectorHighLatency
+            expr: rate(otelcol_processor_batch_send_latency_sum[5m]) / rate(otelcol_processor_batch_send_latency_count[5m]) > 0.5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High latency in OTel Collector processing pipeline"
+              description: "Collector {{ $labels.job }} has a processing latency > 0.5s for more than 2 minutes."
+
+          - alert: OTelCollectorHighCPU
+            expr: process_cpu_seconds_total{job=~"otel-collector.*"} > 0.8
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High CPU usage by OTel Collector"
+              description: "OTel Collector {{ $labels.job }} is using >80% CPU."
+
+          - alert: OTelCollectorHighMemory
+            expr: process_resident_memory_bytes{job=~"otel-collector.*"} > (0.9 * 1073741824)  
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High memory usage by OTel Collector"
+              description: "OTel Collector {{ $labels.job }} is using more than 900MB memory."
+
+
+          - alert: OTelCollectorExporterPermanentFailure
+            expr: rate(otelcol_exporter_send_failed_metric_points[5m]) > 0
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "OTel Collector failed to export metrics"
+              description: "OTel Collector {{ $labels.job }} failed exporting metrics to destination continuously."
+
+  api-gateway-alerts.yaml: |
+    groups:
+      - name: apigateway-alerts
+        rules:
+          - alert: AuthHighErrorRate
+            expr: |
+              sum(rate(auth_handler_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(auth_handler_requests_total[1m])) > 0.1
+            for: 2m
+            labels:
+              service: auth
+              severity: critical
+            annotations:
+              summary: "High error rate on auth service ({{ $value }}%)"
+              description: "More than 10% of auth requests are failing with 5xx status codes."
+
+          - alert: AuthHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(auth_handler_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: auth
+              severity: warning
+            annotations:
+              summary: "Auth service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for auth service > 1s."
+
+          - alert: AuthNoTraffic
+            expr: |
+              rate(auth_handler_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: auth
+              severity: warning
+            annotations:
+              summary: "No traffic on auth service"
+              description: "No incoming auth requests for 5 minutes."
+
+          - alert: CardHighErrorRate
+            expr: |
+              sum(rate(card_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(card_service_requests_total[1m])) > 0.1
+            for: 2m
+            labels:
+              service: card
+              severity: critical
+            annotations:
+              summary: "High error rate on card service ({{ $value }}%)"
+              description: "More than 10% of card requests are failing with 5xx status codes."
+
+          - alert: CardHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(card_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: card
+              severity: warning
+            annotations:
+              summary: "Card service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for card service > 1s."
+          
+          - alert: CardNoTraffic
+            expr: |
+              rate(card_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: card
+              severity: warning
+            annotations:
+              summary: "No traffic on card service"
+              description: "No incoming card requests for 5 minutes."
+
+          - alert: MerchantHighErrorRate
+            expr: |
+              sum(rate(merchant_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(merchant_service_requests_total[1m])) > 0.1
+            for: 2m
+            labels:
+              service: merchant
+              severity: critical
+            annotations:
+              summary: "High error rate on merchant service ({{ $value }}%)"
+              description: "More than 10% of merchant requests are failing with 5xx status codes."
+
+          - alert: MerchantHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(merchant_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: merchant
+              severity: warning
+            annotations:
+              summary: "Merchant service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for merchant service > 1s."
+          
+          - alert: MerchantNoTraffic
+            expr: |
+              rate(merchant_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: merchant
+              severity: warning
+            annotations:
+              summary: "No traffic on merchant service"
+        
+
+          - alert: RoleHighErrorRate
+            expr: |
+              sum(rate(role_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(role_service_requests_total[1m])) > 0.1
+            for: 2m
+            labels:
+              service: role
+              severity: critical
+            annotations:
+              summary: "High error rate on role service ({{ $value }}%)"
+              description: "More than 10% of role requests are failing with 5xx status codes."
+
+          - alert: RoleHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(role_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: role
+              severity: warning
+            annotations:
+              summary: "Role service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for role service > 1s."
+          
+          - alert: RoleNoTraffic
+            expr: |
+              rate(role_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: role
+              severity: warning
+            annotations:
+              summary: "No traffic on role service"
+
+
+          - alert: SaldoHighErrorRate
+            expr: |
+              sum(rate(saldo_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(saldo_service_requests_total[1m])) > 0.1
+            for: 2m
+            labels:
+              service: saldo
+              severity: critical
+            annotations:
+              summary: "High error rate on saldo service ({{ $value }}%)"
+              description: "More than 10% of saldo requests are failing with 5xx status codes."
+
+          - alert: SaldoHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(saldo_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: saldo
+              severity: warning
+            annotations:
+              summary: "Saldo service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for saldo service > 1s."
+          
+          - alert: SaldoNoTraffic
+            expr: |
+              rate(saldo_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: saldo
+              severity: warning
+            annotations:
+              summary: "No traffic on saldo service"
+          
+
+          - alert: TopupHighErrorRate
+            expr: |
+              sum(rate(topup_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(topup_service_requests_total[1m])) > 0.05
+            for: 2m
+            labels:
+              service: topup
+              severity: critical
+            annotations:
+              summary: "High error rate on topup service ({{ $value }}%)"
+              description: "More than 5% of topup requests are failing with 5xx status codes."
+          
+          - alert: TopupHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(topup_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: topup
+              severity: warning
+            annotations:
+              summary: "Topup service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for topup service > 1s."
+          
+          - alert: TopupNoTraffic
+            expr: |
+              rate(topup_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: topup
+              severity: warning
+            annotations:
+              summary: "No traffic on topup service"
+
+          - alert: TransactionHighErrorRate
+            expr: |
+              sum(rate(transaction_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(transaction_service_requests_total[1m])) > 0.05
+            for: 2m
+            labels:
+              service: transaction
+              severity: critical
+            annotations:
+              summary: "High error rate on transaction service ({{ $value }}%)"
+              description: "More than 5% of transaction requests are failing with 5xx status codes."
+
+          - alert: TransactionHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(transaction_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: transaction
+              severity: warning
+            annotations:
+              summary: "Transaction service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for transaction service > 1s."
+          
+          - alert: TransactionNoTraffic
+            expr: |
+              rate(transaction_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: transaction
+              severity: warning
+            annotations:
+              summary: "No traffic on transaction service"
+
+          - alert: TransferHighErrorRate
+            expr: |
+              sum(rate(transfer_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(transfer_service_requests_total[1m])) > 0.05
+            for: 2m
+            labels:
+              service: transfer
+              severity: critical
+            annotations:
+              summary: "High error rate on transfer service ({{ $value }}%)"
+              description: "More than 5% of transfer requests are failing with 5xx status codes."
+          
+          - alert: TransferHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(transfer_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: transfer
+              severity: warning
+            annotations:
+              summary: "Transfer service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for transfer service > 1s."
+          
+          - alert: TransferNoTraffic
+            expr: |
+              rate(transfer_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: transfer
+              severity: warning
+            annotations:
+              summary: "No traffic on transfer service"
+
+          - alert: UserHighErrorRate
+            expr: |
+              sum(rate(user_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(user_service_requests_total[1m])) > 0.1
+            for: 2m
+            labels:
+              service: user
+              severity: critical
+            annotations:
+              summary: "High error rate on user service ({{ $value }}%)"
+              description: "More than 10% of user requests are failing with 5xx status codes."
+          
+          - alert: UserHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(user_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: user
+              severity: warning
+            annotations:
+              summary: "User service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for user service > 1s."
+          
+          - alert: UserNoTraffic
+            expr: |
+              rate(user_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: user
+              severity: warning
+            annotations:
+              summary: "No traffic on user service"
+
+          - alert: WithdrawalHighErrorRate
+            expr: |
+              sum(rate(withdrawal_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(withdrawal_service_requests_total[1m])) > 0.05
+            for: 2m
+            labels:
+              service: withdrawal
+              severity: critical
+            annotations:
+              summary: "High error rate on withdrawal service ({{ $value }}%)"
+              description: "More than 5% of withdrawal requests are failing with 5xx status codes."
+
+          - alert: WithdrawalHighLatency
+            expr: |
+              histogram_quantile(0.95, rate(withdrawal_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              service: withdrawal
+              severity: warning
+            annotations:
+              summary: "Withdrawal service latency is high ({{ $value }}s)"
+              description: "95th percentile latency for withdrawal service > 1s."
+          
+          - alert: WithdrawalNoTraffic
+            expr: |
+              rate(withdrawal_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              service: withdrawal
+              severity: warning
+            annotations:
+              summary: "No traffic on withdrawal service"
+
+          
+
+
+
+  auth-service-alerts.yaml: |
+    groups:
+      - name: auth-service-alerts
+        rules:
+          - alert: HighErrorRate
+            expr: |
+              sum(rate(login_service_requests_total{status=~"5.."}[1m])) 
+              / 
+              sum(rate(login_service_requests_total[1m])) > 0.1
+            for: 2m
+            labels:
+              severity: critical
+            annotations:
+              summary: "High error rate on login service"
+              description: "More than 10% of requests are failing (5xx status codes)."
+
+          - alert: HighLatency
+            expr: |
+              histogram_quantile(0.95, rate(login_service_request_duration_seconds_bucket[5m])) > 1
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "Login service latency is high"
+              description: "95th percentile latency > 1s for login service."
+
+          - alert: NoTraffic
+            expr: |
+              rate(login_service_requests_total[5m]) == 0
+            for: 5m
+            labels:
+              severity: warning
+            annotations:
+              summary: "No traffic on login service"
+              description: "No incoming traffic for login service for 5 minutes."
+
+  card-service-alerts.yaml: |
+    groups:
+      - name: card-services-alerts
+        rules:
+          - alert: HighFailureRate_CardCommandService
+            expr: increase(card_command_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: card_command_service
+            annotations:
+              summary: "High failure rate on card_command_service"
+              description: "More than 5 failed requests in the last 5 minutes for card_command_service."
+
+          - alert: HighLatency_CardCommandService
+            expr: histogram_quantile(0.95, rate(card_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: card_command_service
+            annotations:
+              summary: "High latency detected on card_command_service"
+              description: "P95 latency for card_command_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_CardCommandService
+            expr: rate(card_command_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: card_command_service
+            annotations:
+              summary: "No traffic detected on card_command_service"
+              description: "No traffic detected on card_command_service in the last 5 minutes."
+
+          - alert: HighFailureRate_CardDashboardService
+            expr: increase(card_dashboard_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: card_dashboard_service
+            annotations:
+              summary: "High failure rate on card_dashboard_service"
+              description: "More than 5 failed requests in the last 5 minutes for card_dashboard_service."
+
+          - alert: HighLatency_CardDashboardService
+            expr: histogram_quantile(0.95, rate(card_dashboard_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: card_dashboard_service
+            annotations:
+              summary: "High latency detected on card_dashboard_service"
+              description: "P95 latency for card_dashboard_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_CardDashboardService
+            expr: rate(card_dashboard_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: card_dashboard_service
+            annotations:
+              summary: "No traffic detected on card_dashboard_service"
+              description: "No traffic detected on card_dashboard_service in the last 5 minutes."
+
+          - alert: HighFailureRate_CardStatisticService
+            expr: increase(card_statistic_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: card_statistic_service
+            annotations:
+              summary: "High failure rate on card_statistic_service"
+              description: "More than 5 failed requests in the last 5 minutes for card_statistic_service."
+
+          - alert: HighLatency_CardStatisticService
+            expr: histogram_quantile(0.95, rate(card_statistic_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: card_statistic_service
+            annotations:
+              summary: "High latency detected on card_statistic_service"
+              description: "P95 latency for card_statistic_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_CardStatisticService
+            expr: rate(card_statistic_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: card_statistic_service
+            annotations:
+              summary: "No traffic detected on card_statistic_service"
+              description: "No traffic detected on card_statistic_service in the last 5 minutes."
+
+          - alert: HighFailureRate_CardTransactionService
+            expr: increase(card_transaction_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: card_transaction_service
+            annotations:
+              summary: "High failure rate on card_transaction_service"
+              description: "More than 5 failed requests in the last 5 minutes for card_transaction_service."
+
+          - alert: HighLatency_CardTransactionService
+            expr: histogram_quantile(0.95, rate(card_transaction_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: card_transaction_service
+            annotations:
+              summary: "High latency detected on card_transaction_service"
+              description: "P95 latency for card_transaction_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_CardTransactionService
+            expr: rate(card_transaction_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: card_transaction_service
+            annotations:
+              summary: "No traffic detected on card_transaction_service"
+              description: "No traffic detected on card_transaction_service in the last 5 minutes."
+
+  email-service-alerts.yaml: |
+    groups:
+      - name: email-service-alerts
+        rules:
+          - alert: HighEmailFailureRate
+            expr: increase(email_service_requests_total{method="ConsumeClaim",status="failed_send_email"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+            annotations:
+              summary: "High email failure rate on EmailService"
+              description: "More than 5 failed email attempts in the last 5 minutes for method 'ConsumeClaim'."
+
+  merchant-service-alerts.yaml: |
+    groups:
+      - name: merchant-service-alerts
+        rules:
+          - alert: HighFailureRate_MerchantCommandService
+            expr: increase(merchant_command_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_command_service
+            annotations:
+              summary: "High failure rate on merchant_command_service"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_command_service."
+
+          - alert: HighLatency_MerchantCommandService
+            expr: histogram_quantile(0.95, rate(merchant_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_command_service
+            annotations:
+              summary: "High latency detected on merchant_command_service"
+              description: "P95 latency for merchant_command_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantCommandService
+            expr: rate(merchant_command_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_command_service
+            annotations:
+              summary: "No traffic detected on merchant_command_service"
+              description: "No traffic detected on merchant_command_service in the last 5 minutes."
+
+          - alert: HighFailureRate_MerchantDocumentCommand
+            expr: increase(merchant_document_command_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_document_command
+            annotations:
+              summary: "High failure rate on merchant_document_command"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_document_command."
+
+          - alert: HighLatency_MerchantDocumentCommand
+            expr: histogram_quantile(0.95, rate(merchant_document_command_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_document_command
+            annotations:
+              summary: "High latency detected on merchant_document_command"
+              description: "P95 latency for merchant_document_command is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantDocumentCommand
+            expr: rate(merchant_document_command_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_document_command
+            annotations:
+              summary: "No traffic detected on merchant_document_command"
+              description: "No traffic detected on merchant_document_command in the last 5 minutes."
+
+          - alert: HighFailureRate_MerchantDocumentQuery
+            expr: increase(merchant_document_query_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_document_query
+            annotations:
+              summary: "High failure rate on merchant_document_query"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_document_query."
+
+          - alert: HighLatency_MerchantDocumentQuery
+            expr: histogram_quantile(0.95, rate(merchant_document_query_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_document_query
+            annotations:
+              summary: "High latency detected on merchant_document_query"
+              description: "P95 latency for merchant_document_query is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantDocumentQuery
+            expr: rate(merchant_document_query_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_document_query
+            annotations:
+              summary: "No traffic detected on merchant_document_query"
+              description: "No traffic detected on merchant_document_query in the last 5 minutes."
+
+          - alert: HighFailureRate_MerchantQueryService
+            expr: increase(merchant_query_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_query_service
+            annotations:
+              summary: "High failure rate on merchant_query_service"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_query_service."
+
+          - alert: HighLatency_MerchantQueryService
+            expr: histogram_quantile(0.95, rate(merchant_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_query_service
+            annotations:
+              summary: "High latency detected on merchant_query_service"
+              description: "P95 latency for merchant_query_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantQueryService
+            expr: rate(merchant_query_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_query_service
+            annotations:
+              summary: "No traffic detected on merchant_query_service"
+              description: "No traffic detected on merchant_query_service in the last 5 minutes."
+
+          - alert: HighFailureRate_MerchantStatisByApikeyService
+            expr: increase(merchant_statis_by_apikey_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statis_by_apikey_service
+            annotations:
+              summary: "High failure rate on merchant_statis_by_apikey_service"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_statis_by_apikey_service."
+
+          - alert: HighLatency_MerchantStatisByApikeyService
+            expr: histogram_quantile(0.95, rate(merchant_statis_by_apikey_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statis_by_apikey_service
+            annotations:
+              summary: "High latency detected on merchant_statis_by_apikey_service"
+              description: "P95 latency for merchant_statis_by_apikey_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantStatisByApikeyService
+            expr: rate(merchant_statis_by_apikey_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statis_by_apikey_service
+            annotations:
+              summary: "No traffic detected on merchant_statis_by_apikey_service"
+              description: "No traffic detected on merchant_statis_by_apikey_service in the last 5 minutes."
+
+          - alert: HighFailureRate_MerchantStatisByMerchantService
+            expr: increase(merchant_statis_by_merchant_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statis_by_merchant_service
+            annotations:
+              summary: "High failure rate on merchant_statis_by_merchant_service"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_statis_by_merchant_service."
+
+          - alert: HighLatency_MerchantStatisByMerchantService
+            expr: histogram_quantile(0.95, rate(merchant_statis_by_merchant_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statis_by_merchant_service
+            annotations:
+              summary: "High latency detected on merchant_statis_by_merchant_service"
+              description: "P95 latency for merchant_statis_by_merchant_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantStatisByMerchantService
+            expr: rate(merchant_statis_by_merchant_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statis_by_merchant_service
+            annotations:
+              summary: "No traffic detected on merchant_statis_by_merchant_service"
+              description: "No traffic detected on merchant_statis_by_merchant_service in the last 5 minutes."
+
+          - alert: HighFailureRate_MerchantStatisticService
+            expr: increase(merchant_statistic_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statistic_service
+            annotations:
+              summary: "High failure rate on merchant_statistic_service"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_statistic_service."
+
+          - alert: HighLatency_MerchantStatisticService
+            expr: histogram_quantile(0.95, rate(merchant_statistic_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statistic_service
+            annotations:
+              summary: "High latency detected on merchant_statistic_service"
+              description: "P95 latency for merchant_statistic_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantStatisticService
+            expr: rate(merchant_statistic_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_statistic_service
+            annotations:
+              summary: "No traffic detected on merchant_statistic_service"
+              description: "No traffic detected on merchant_statistic_service in the last 5 minutes."
+
+          - alert: HighFailureRate_MerchantTransactionService
+            expr: increase(merchant_transaction_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_transaction_service
+            annotations:
+              summary: "High failure rate on merchant_transaction_service"
+              description: "More than 5 failed requests in the last 5 minutes for merchant_transaction_service."
+
+          - alert: HighLatency_MerchantTransactionService
+            expr: histogram_quantile(0.95, rate(merchant_transaction_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_transaction_service
+            annotations:
+              summary: "High latency detected on merchant_transaction_service"
+              description: "P95 latency for merchant_transaction_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_MerchantTransactionService
+            expr: rate(merchant_transaction_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: merchant_transaction_service
+            annotations:
+              summary: "No traffic detected on merchant_transaction_service"
+              description: "No traffic detected on merchant_transaction_service in the last 5 minutes."
+
+
+  role-service-alerts.yaml: |
+    groups:
+      - name: role-service-alerts
+        rules:
+          - alert: HighFailureRate_RoleCommandService
+            expr: increase(role_command_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: role_command_service
+            annotations:
+              summary: "High failure rate on role_command_service"
+              description: "More than 5 failed requests in the last 5 minutes for role_command_service."
+
+          - alert: HighLatency_RoleCommandService
+            expr: histogram_quantile(0.95, rate(role_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: role_command_service
+            annotations:
+              summary: "High latency detected on role_command_service"
+              description: "P95 latency for role_command_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_RoleCommandService
+            expr: rate(role_command_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: role_command_service
+            annotations:
+              summary: "No traffic detected on role_command_service"
+              description: "No traffic detected on role_command_service in the last 5 minutes."
+
+          - alert: HighFailureRate_RoleQueryService
+            expr: increase(role_query_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: role_query_service
+            annotations:
+              summary: "High failure rate on role_query_service"
+              description: "More than 5 failed requests in the last 5 minutes for role_query_service."
+
+          - alert: HighLatency_RoleQueryService
+            expr: histogram_quantile(0.95, rate(role_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: role_query_service
+            annotations:
+              summary: "High latency detected on role_query_service"
+              description: "P95 latency for role_query_service is greater than 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_RoleQueryService
+            expr: rate(role_query_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: role_query_service
+            annotations:
+              summary: "No traffic detected on role_query_service"
+              description: "No traffic detected on role_query_service in the last 5 minutes."
+  
+  
+  saldo-service-alerts.yaml: |
+    groups:
+      - name: saldo-services-alerts
+        rules:
+          - alert: HighFailureRate_SaldoCommandService
+            expr: increase(saldo_command_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_command_service
+            annotations:
+              summary: "High failure rate on saldo_command_service"
+              description: "More than 5 failed requests in the last 5 minutes for saldo_command_service."
+
+          - alert: HighLatency_SaldoCommandService
+            expr: histogram_quantile(0.95, rate(saldo_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_command_service
+            annotations:
+              summary: "High latency detected on saldo_command_service"
+              description: "P95 latency for saldo_command_service is greater than 1 second."
+
+          - alert: NoTraffic_SaldoCommandService
+            expr: rate(saldo_command_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_command_service
+            annotations:
+              summary: "No traffic on saldo_command_service"
+              description: "No requests received for saldo_command_service in the last 5 minutes."
+
+          - alert: HighFailureRate_SaldoQueryService
+            expr: increase(saldo_query_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_query_service
+            annotations:
+              summary: "High failure rate on saldo_query_service"
+              description: "More than 5 failed requests in the last 5 minutes for saldo_query_service."
+
+          - alert: HighLatency_SaldoQueryService
+            expr: histogram_quantile(0.95, rate(saldo_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_query_service
+            annotations:
+              summary: "High latency detected on saldo_query_service"
+              description: "P95 latency for saldo_query_service is greater than 1 second."
+
+          - alert: NoTraffic_SaldoQueryService
+            expr: rate(saldo_query_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_query_service
+            annotations:
+              summary: "No traffic on saldo_query_service"
+              description: "No requests received for saldo_query_service in the last 5 minutes."
+
+          
+          - alert: HighFailureRate_SaldoStatisticsService
+            expr: increase(saldo_statistics_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_statistics_service
+            annotations:
+              summary: "High failure rate on saldo_statistics_service"
+              description: "More than 5 failed requests in the last 5 minutes for saldo_statistics_service."
+
+          - alert: HighLatency_SaldoStatisticsService
+            expr: histogram_quantile(0.95, rate(saldo_statistics_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_statistics_service
+            annotations:
+              summary: "High latency detected on saldo_statistics_service"
+              description: "P95 latency for saldo_statistics_service is greater than 1 second."
+
+          - alert: NoTraffic_SaldoStatisticsService
+            expr: rate(saldo_statistics_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: saldo_statistics_service
+            annotations:
+              summary: "No traffic on saldo_statistics_service"
+              description: "No requests received for saldo_statistics_service in the last 5 minutes."
+
+  
+  topup-service-alerts.yaml: |
+    groups:
+      - name: topup-services-alerts
+        rules:
+          - alert: HighFailureRate_TopupCommandService
+            expr: increase(topup_command_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_command_service
+            annotations:
+              summary: "High failure rate on topup_command_service"
+              description: "More than 5 failed requests in the last 5 minutes for topup_command_service."
+
+          - alert: HighLatency_TopupCommandService
+            expr: histogram_quantile(0.95, rate(topup_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_command_service
+            annotations:
+              summary: "High latency on topup_command_service"
+              description: "P95 latency for topup_command_service is greater than 1 second."
+
+          - alert: NoTraffic_TopupCommandService
+            expr: rate(topup_command_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_command_service
+            annotations:
+              summary: "No traffic on topup_command_service"
+              description: "No requests received for topup_command_service in the last 5 minutes."
+
+          - alert: HighFailureRate_TopupQueryService
+            expr: increase(topup_query_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_query_service
+            annotations:
+              summary: "High failure rate on topup_query_service"
+              description: "More than 5 failed requests in the last 5 minutes for topup_query_service."
+
+          - alert: HighLatency_TopupQueryService
+            expr: histogram_quantile(0.95, rate(topup_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_query_service
+            annotations:
+              summary: "High latency on topup_query_service"
+              description: "P95 latency for topup_query_service is greater than 1 second."
+
+          - alert: NoTraffic_TopupQueryService
+            expr: rate(topup_query_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_query_service
+            annotations:
+              summary: "No traffic on topup_query_service"
+              description: "No requests received for topup_query_service in the last 5 minutes."
+
+
+          - alert: HighFailureRate_TopupStatisticByCardService
+            expr: increase(topup_statistic_by_card_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_statistic_by_card_service
+            annotations:
+              summary: "High failure rate on topup_statistic_by_card_service"
+              description: "More than 5 failed requests in the last 5 minutes for topup_statistic_by_card_service."
+
+          - alert: HighLatency_TopupStatisticByCardService
+            expr: histogram_quantile(0.95, rate(topup_statistic_by_card_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_statistic_by_card_service
+            annotations:
+              summary: "High latency on topup_statistic_by_card_service"
+              description: "P95 latency for topup_statistic_by_card_service is greater than 1 second."
+
+          - alert: NoTraffic_TopupStatisticByCardService
+            expr: rate(topup_statistic_by_card_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_statistic_by_card_service
+            annotations:
+              summary: "No traffic on topup_statistic_by_card_service"
+              description: "No requests received for topup_statistic_by_card_service in the last 5 minutes."
+
+          - alert: HighFailureRate_TopupStatisticService
+            expr: increase(topup_statistic_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_statistic_service
+            annotations:
+              summary: "High failure rate on topup_statistic_service"
+              description: "More than 5 failed requests in the last 5 minutes for topup_statistic_service."
+
+          - alert: HighLatency_TopupStatisticService
+            expr: histogram_quantile(0.95, rate(topup_statistic_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_statistic_service
+            annotations:
+              summary: "High latency on topup_statistic_service"
+              description: "P95 latency for topup_statistic_service is greater than 1 second."
+
+          - alert: NoTraffic_TopupStatisticService
+            expr: rate(topup_statistic_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: topup_statistic_service
+            annotations:
+              summary: "No traffic on topup_statistic_service"
+              description: "No requests received for topup_statistic_service in the last 5 minutes."
+
+
+  transaction-service-alerts.yaml: |
+    groups:
+      - name: transaction-services-alerts
+        rules:
+          - alert: HighFailureRate_TransactionCommandService
+            expr: increase(transaction_command_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_command_service
+            annotations:
+              summary: "High failure rate on transaction_command_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransactionCommandService
+            expr: histogram_quantile(0.95, rate(transaction_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_command_service
+            annotations:
+              summary: "High latency on transaction_command_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransactionCommandService
+            expr: rate(transaction_command_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_command_service
+            annotations:
+              summary: "No traffic on transaction_command_service"
+              description: "No requests received in the last 5 minutes."
+
+          - alert: HighFailureRate_TransactionQueryService
+            expr: increase(transaction_query_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_query_service
+            annotations:
+              summary: "High failure rate on transaction_query_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransactionQueryService
+            expr: histogram_quantile(0.95, rate(transaction_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_query_service
+            annotations:
+              summary: "High latency on transaction_query_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransactionQueryService
+            expr: rate(transaction_query_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_query_service
+            annotations:
+              summary: "No traffic on transaction_query_service"
+              description: "No requests received in the last 5 minutes."
+
+          - alert: HighFailureRate_TransactionStatisticByCardService
+            expr: increase(transaction_statistic_by_card_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_statistic_by_card_service
+            annotations:
+              summary: "High failure rate on transaction_statistic_by_card_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransactionStatisticByCardService
+            expr: histogram_quantile(0.95, rate(transaction_statistic_by_card_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_statistic_by_card_service
+            annotations:
+              summary: "High latency on transaction_statistic_by_card_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransactionStatisticByCardService
+            expr: rate(transaction_statistic_by_card_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_statistic_by_card_service
+            annotations:
+              summary: "No traffic on transaction_statistic_by_card_service"
+              description: "No requests received in the last 5 minutes."
+
+          - alert: HighFailureRate_TransactionStatisticService
+            expr: increase(transaction_statistic_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_statistic_service
+            annotations:
+              summary: "High failure rate on transaction_statistic_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransactionStatisticService
+            expr: histogram_quantile(0.95, rate(transaction_statistic_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_statistic_service
+            annotations:
+              summary: "High latency on transaction_statistic_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransactionStatisticService
+            expr: rate(transaction_statistic_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transaction_statistic_service
+            annotations:
+              summary: "No traffic on transaction_statistic_service"
+              description: "No requests received in the last 5 minutes."
+
+
+  transfer-service-alerts.yaml: |
+    groups:
+      - name: transfer-services-alerts
+        rules:
+          - alert: HighFailureRate_TransferCommandService
+            expr: increase(transfer_command_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_command_service
+            annotations:
+              summary: "High failure rate on transfer_command_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransferCommandService
+            expr: histogram_quantile(0.95, rate(transfer_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_command_service
+            annotations:
+              summary: "High latency on transfer_command_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransferCommandService
+            expr: rate(transfer_command_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_command_service
+            annotations:
+              summary: "No traffic on transfer_command_service"
+              description: "No requests received in the last 5 minutes."
+
+          - alert: HighFailureRate_TransferQueryService
+            expr: increase(transfer_query_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_query_service
+            annotations:
+              summary: "High failure rate on transfer_query_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransferQueryService
+            expr: histogram_quantile(0.95, rate(transfer_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_query_service
+            annotations:
+              summary: "High latency on transfer_query_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransferQueryService
+            expr: rate(transfer_query_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_query_service
+            annotations:
+              summary: "No traffic on transfer_query_service"
+              description: "No requests received in the last 5 minutes."
+
+          - alert: HighFailureRate_TransferStatisticByCardService
+            expr: increase(transfer_statistic_by_card_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_statistic_by_card_service
+            annotations:
+              summary: "High failure rate on transfer_statistic_by_card_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransferStatisticByCardService
+            expr: histogram_quantile(0.95, rate(transfer_statistic_by_card_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_statistic_by_card_service
+            annotations:
+              summary: "High latency on transfer_statistic_by_card_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransferStatisticByCardService
+            expr: rate(transfer_statistic_by_card_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_statistic_by_card_service
+            annotations:
+              summary: "No traffic on transfer_statistic_by_card_service"
+              description: "No requests received in the last 5 minutes."
+
+          
+          - alert: HighFailureRate_TransferStatisticService
+            expr: increase(transfer_statistic_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_statistic_service
+            annotations:
+              summary: "High failure rate on transfer_statistic_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_TransferStatisticService
+            expr: histogram_quantile(0.95, rate(transfer_statistic_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_statistic_service
+            annotations:
+              summary: "High latency on transfer_statistic_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_TransferStatisticService
+            expr: rate(transfer_statistic_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: transfer_statistic_service
+            annotations:
+              summary: "No traffic on transfer_statistic_service"
+              description: "No requests received in the last 5 minutes."
+
+
+
+  user-service-alerts.yaml: |
+    groups:
+      - name: user-services-alerts
+        rules:
+          - alert: HighFailureRate_UserCommandService
+            expr: increase(user_command_service_requests_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: user_command_service
+            annotations:
+              summary: "High failure rate on user_command_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_UserCommandService
+            expr: histogram_quantile(0.95, rate(user_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: user_command_service
+            annotations:
+              summary: "High latency on user_command_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_UserCommandService
+            expr: rate(user_command_service_requests_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: user_command_service
+            annotations:
+              summary: "No traffic on user_command_service"
+              description: "No requests received in the last 5 minutes."
+
+          - alert: HighFailureRate_UserQueryService
+            expr: increase(user_query_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: user_query_service
+            annotations:
+              summary: "High failure rate on user_query_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_UserQueryService
+            expr: histogram_quantile(0.95, rate(user_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: user_query_service
+            annotations:
+              summary: "High latency on user_query_service"
+              description: "P95 latency is greater than 1 second."
+
+          - alert: NoTraffic_UserQueryService
+            expr: rate(user_query_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: user_query_service
+            annotations:
+              summary: "No traffic on user_query_service"
+              description: "No requests received in the last 5 minutes."
+
+  withdrawal-service-alerts.yaml: |
+    groups:
+      - name: withdraw-services-alerts
+        rules:
+          - alert: HighFailureRate_WithdrawCommandService
+            expr: increase(withdraw_command_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_command_service
+            annotations:
+              summary: "High failure rate on withdraw_command_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_WithdrawCommandService
+            expr: histogram_quantile(0.95, rate(withdraw_command_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_command_service
+            annotations:
+              summary: "High latency on withdraw_command_service"
+              description: "P95 latency > 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_WithdrawCommandService
+            expr: rate(withdraw_command_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_command_service
+            annotations:
+              summary: "No traffic on withdraw_command_service"
+              description: "No traffic detected in the last 5 minutes."
+
+          - alert: HighFailureRate_WithdrawQueryService
+            expr: increase(withdraw_query_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_query_service
+            annotations:
+              summary: "High failure rate on withdraw_query_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_WithdrawQueryService
+            expr: histogram_quantile(0.95, rate(withdraw_query_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_query_service
+            annotations:
+              summary: "High latency on withdraw_query_service"
+              description: "P95 latency > 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_WithdrawQueryService
+            expr: rate(withdraw_query_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_query_service
+            annotations:
+              summary: "No traffic on withdraw_query_service"
+              description: "No traffic detected in the last 5 minutes."
+
+          - alert: HighFailureRate_WithdrawStatisticByCardService
+            expr: increase(withdraw_statistic_by_card_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_statistic_by_card_service
+            annotations:
+              summary: "High failure rate on withdraw_statistic_by_card_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_WithdrawStatisticByCardService
+            expr: histogram_quantile(0.95, rate(withdraw_statistic_by_card_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_statistic_by_card_service
+            annotations:
+              summary: "High latency on withdraw_statistic_by_card_service"
+              description: "P95 latency > 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_WithdrawStatisticByCardService
+            expr: rate(withdraw_statistic_by_card_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_statistic_by_card_service
+            annotations:
+              summary: "No traffic on withdraw_statistic_by_card_service"
+              description: "No traffic detected in the last 5 minutes."
+
+
+          - alert: HighFailureRate_WithdrawStatisticService
+            expr: increase(withdraw_statistic_service_request_total{status="failed"}[5m]) > 5
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_statistic_service
+            annotations:
+              summary: "High failure rate on withdraw_statistic_service"
+              description: "More than 5 failed requests in the last 5 minutes."
+
+          - alert: HighLatency_WithdrawStatisticService
+            expr: histogram_quantile(0.95, rate(withdraw_statistic_service_request_duration_seconds_bucket[5m])) > 1
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_statistic_service
+            annotations:
+              summary: "High latency on withdraw_statistic_service"
+              description: "P95 latency > 1 second in the last 5 minutes."
+
+          - alert: NoTraffic_WithdrawStatisticService
+            expr: rate(withdraw_statistic_service_request_total[5m]) == 0
+            for: 2m
+            labels:
+              severity: warning
+              service: withdraw_statistic_service
+            annotations:
+              summary: "No traffic on withdraw_statistic_service"
+              description: "No traffic detected in the last 5 minutes."

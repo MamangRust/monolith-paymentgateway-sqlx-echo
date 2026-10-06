@@ -1,0 +1,42 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transfer';
+
+package pb.transfer;
+
+import "common/api.proto";
+import "transfer/transfer.proto";
+
+message ApiResponsePaginationTransfer {
+  string status = 1;
+  string message = 2;
+  repeated TransferResponse data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponsePaginationTransferDeleteAt {
+  string status = 1;
+  string message = 2;
+  repeated TransferResponseDeleteAt data = 3;
+  pb.common.PaginationMeta paginationMeta = 4;
+}
+
+message ApiResponseTransfers {
+  string status = 1;
+  string message = 2;
+  repeated TransferResponse data = 3;
+}
+
+service TransferQueryService {
+  rpc FindAllTransfer(FindAllTransferRequest)
+      returns (ApiResponsePaginationTransfer);
+  rpc FindByIdTransfer(FindByIdTransferRequest) returns (ApiResponseTransfer);
+  rpc FindTransferByTransferFrom(FindTransferByTransferFromRequest)
+      returns (ApiResponseTransfers);
+  rpc FindTransferByTransferTo(FindTransferByTransferToRequest)
+      returns (ApiResponseTransfers);
+  rpc FindByActiveTransfer(FindAllTransferRequest)
+      returns (ApiResponsePaginationTransferDeleteAt);
+  rpc FindByTrashedTransfer(FindAllTransferRequest)
+      returns (ApiResponsePaginationTransferDeleteAt);
+}

@@ -1,0 +1,43 @@
+syntax = "proto3";
+
+package pb.card;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card";
+
+import "card/card.proto";
+import "google/protobuf/empty.proto";
+
+message CardResponseDashboard {
+  int64 total_balance = 1;
+  int64 total_topup = 2;
+  int64 total_withdraw = 3;
+  int64 total_transaction = 4;
+  int64 total_transfer = 5;
+}
+
+message CardResponseDashboardCardNumber {
+  int64 total_balance = 1;
+  int64 total_topup = 2;
+  int64 total_withdraw = 3;
+  int64 total_transaction = 4;
+  int64 total_transfer_send = 5;
+  int64 total_transfer_receiver = 6;
+}
+
+message ApiResponseDashboardCard {
+  string status = 1;
+  string message = 2;
+  CardResponseDashboard data = 3;
+}
+
+message ApiResponseDashboardCardNumber {
+  string status = 1;
+  string message = 2;
+  CardResponseDashboardCardNumber data = 3;
+}
+
+service CardDashboardService {
+  rpc DashboardCard(google.protobuf.Empty) returns (ApiResponseDashboardCard) {}
+  rpc DashboardCardNumber(FindByCardNumberRequest)
+      returns (ApiResponseDashboardCardNumber) {}
+}

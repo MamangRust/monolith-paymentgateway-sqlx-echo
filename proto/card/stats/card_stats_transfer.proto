@@ -1,0 +1,34 @@
+syntax = "proto3";
+
+package pb.card.stats;
+
+option go_package = "github.com/MamangRust/monolith-payment-gateway-pb/card/stats";
+
+import "card/card.proto";
+
+service CardStatsTransferService {
+  rpc FindMonthlyTransferSenderAmount(FindYearAmount)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyTransferSenderAmount(FindYearAmount)
+      returns (ApiResponseYearlyAmount) {}
+
+  rpc FindMonthlyTransferReceiverAmount(FindYearAmount)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyTransferReceiverAmount(FindYearAmount)
+      returns (ApiResponseYearlyAmount) {}
+
+  rpc FindMonthlyTransferSenderAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyTransferSenderAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseYearlyAmount) {}
+
+  rpc FindMonthlyTransferReceiverAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseMonthlyAmount) {}
+  rpc FindYearlyTransferReceiverAmountByCardNumber(FindYearAmountCardNumber)
+      returns (ApiResponseYearlyAmount) {}
+
+  rpc FindDailyTransferSenderAmount(FindYearAmount) returns (ApiResponseDailyAmount) {}
+  rpc FindDailyTransferSenderAmountByCardNumber(FindYearAmountCardNumber) returns (ApiResponseDailyAmount) {}
+  rpc FindDailyTransferReceiverAmount(FindYearAmount) returns (ApiResponseDailyAmount) {}
+  rpc FindDailyTransferReceiverAmountByCardNumber(FindYearAmountCardNumber) returns (ApiResponseDailyAmount) {}
+}

@@ -1,0 +1,41 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/withdraw/stats';
+
+package pb.withdraw.stats;
+
+import "withdraw/withdraw.proto";
+
+message WithdrawMonthlyAmountResponse {
+  string month = 1;
+  int32 total_amount = 2;
+}
+
+message WithdrawYearlyAmountResponse {
+  string year = 1;
+  int32 total_amount = 2;
+}
+
+message ApiResponseWithdrawMonthAmount {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawMonthlyAmountResponse data = 3;
+}
+
+message ApiResponseWithdrawYearAmount {
+  string status = 1;
+  string message = 2;
+  repeated WithdrawYearlyAmountResponse data = 3;
+}
+
+service WithdrawStatsAmountService {
+  rpc FindMonthlyWithdraws(FindYearWithdrawStatus)
+      returns (ApiResponseWithdrawMonthAmount) {}
+  rpc FindYearlyWithdraws(FindYearWithdrawStatus)
+      returns (ApiResponseWithdrawYearAmount) {}
+
+  rpc FindMonthlyWithdrawsByCardNumber(FindYearWithdrawCardNumber)
+      returns (ApiResponseWithdrawMonthAmount) {}
+  rpc FindYearlyWithdrawsByCardNumber(FindYearWithdrawCardNumber)
+      returns (ApiResponseWithdrawYearAmount) {}
+}

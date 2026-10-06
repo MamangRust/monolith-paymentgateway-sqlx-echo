@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/topup';
+
+package pb.topup;
+
+import "google/protobuf/wrappers.proto";
+
+message FindByIdTopupRequest { int32 topup_id = 1; }
+
+message FindMonthlyTopupStatus {
+  int32 year = 1;
+  int32 month = 2;
+}
+
+message FindYearTopupStatus { int32 year = 1; }
+
+message FindMonthlyTopupStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+  int32 month = 3;
+}
+
+message FindYearTopupStatusCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindByCardNumberTopupRequest {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message FindYearTopupCardNumber {
+  string card_number = 1;
+  int32 year = 2;
+}
+
+message TopupResponse {
+  int32 id = 1;
+  string card_number = 2;
+  string topup_no = 3;
+  int32 topup_amount = 4;
+  string topup_method = 5;
+  string topup_time = 6;
+  string created_at = 7;
+  string updated_at = 8;
+}
+
+message TopupResponseDeleteAt {
+  int32 id = 1;
+  string card_number = 2;
+  string topup_no = 3;
+  int32 topup_amount = 4;
+  string topup_method = 5;
+  string topup_time = 6;
+  string created_at = 7;
+  string updated_at = 8;
+  google.protobuf.StringValue deleted_at = 9;
+}
+
+message ApiResponseTopup {
+  string status = 1;
+  string message = 2;
+  TopupResponse data = 3;
+}
+
+message ApiResponseTopupDeleteAt {
+  string status = 1;
+  string message = 2;
+  TopupResponseDeleteAt data = 3;
+}

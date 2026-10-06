@@ -1,0 +1,84 @@
+syntax = "proto3";
+
+package pb.merchant;
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/merchant';
+
+import "google/protobuf/wrappers.proto";
+
+message FindYearMerchant { int32 year = 1; }
+
+message FindYearMerchantById {
+  int32 year = 1;
+  int32 merchant_id = 2;
+}
+
+message FindYearMerchantByApikey {
+  int32 year = 1;
+  string api_key = 2;
+}
+
+message FindAllMerchantRequest {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+}
+
+message FindAllMerchantTransaction {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+  int32 merchant_id = 4;
+}
+
+message FindAllMerchantApikey {
+  int32 page = 1;
+  int32 page_size = 2;
+  string search = 3;
+  string api_key = 4;
+}
+
+message FindByIdMerchantRequest { int32 merchant_id = 1; }
+
+message FindByApiKeyRequest { string api_key = 1; }
+
+message FindByMerchantUserIdRequest { int32 user_id = 1; }
+
+message MerchantResponse {
+  int32 id = 1;
+  string name = 2;
+  string api_key = 3;
+  string status = 4;
+  int32 user_id = 5;
+  string created_at = 6;
+  string updated_at = 7;
+}
+
+message MerchantResponseDeleteAt {
+  int32 id = 1;
+  string name = 2;
+  string api_key = 3;
+  string status = 4;
+  int32 user_id = 5;
+  string created_at = 6;
+  string updated_at = 7;
+  google.protobuf.StringValue deleted_at = 8;
+}
+
+message ApiResponsesMerchant {
+  string status = 1;
+  string message = 2;
+  repeated MerchantResponse data = 3;
+}
+
+message ApiResponseMerchant {
+  string status = 1;
+  string message = 2;
+  MerchantResponse data = 3;
+}
+
+message ApiResponseMerchantDeleteAt {
+  string status = 1;
+  string message = 2;
+  MerchantResponseDeleteAt data = 3;
+}

@@ -1,0 +1,47 @@
+syntax = "proto3";
+
+option go_package = 'github.com/MamangRust/monolith-payment-gateway-pb/transaction/stats';
+
+package pb.transaction.stats;
+
+import "transaction/transaction.proto";
+
+message TransactionMonthMethodResponse {
+  string month = 1;
+  string payment_method = 2;
+  int32 total_transactions = 3;
+  int32 total_amount = 4;
+}
+
+message TransactionYearMethodResponse {
+  string year = 1;
+  string payment_method = 2;
+  int32 total_transactions = 3;
+  int32 total_amount = 4;
+}
+
+message ApiResponseTransactionMonthMethod {
+  string status = 1;
+  string message = 2;
+  repeated TransactionMonthMethodResponse data = 3;
+}
+
+message ApiResponseTransactionYearMethod {
+  string status = 1;
+  string message = 2;
+  repeated TransactionYearMethodResponse data = 3;
+}
+
+service TransactionStatsMethodService {
+  rpc FindMonthlyPaymentMethods(FindYearTransactionStatus)
+      returns (ApiResponseTransactionMonthMethod) {}
+  rpc FindYearlyPaymentMethods(FindYearTransactionStatus)
+      returns (ApiResponseTransactionYearMethod) {}
+
+  rpc FindMonthlyPaymentMethodsByCardNumber(
+      FindByYearCardNumberTransactionRequest)
+      returns (ApiResponseTransactionMonthMethod) {}
+  rpc FindYearlyPaymentMethodsByCardNumber(
+      FindByYearCardNumberTransactionRequest)
+      returns (ApiResponseTransactionYearMethod) {}
+}
